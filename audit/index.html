@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light Show plugin: audit harness</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @font-face { font-family: "Inter"; src: url("./inter.woff2") format("woff2"); font-weight: 100 900; }
+  :root { --font-inter: "Inter"; }
+  html, body { background: #0b0d14; }
+  #wall {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(70px 70px at 14% 9%,rgba(255,196,92,.35),transparent 70%),
+      radial-gradient(110px 110px at 86% 14%,rgba(255,92,92,.22),transparent 70%),
+      radial-gradient(90px 90px at 72% 42%,rgba(110,200,255,.20),transparent 70%),
+      radial-gradient(130px 130px at 8% 58%,rgba(120,255,170,.14),transparent 70%),
+      radial-gradient(80px 80px at 92% 74%,rgba(255,196,92,.28),transparent 70%),
+      radial-gradient(140px 140px at 30% 92%,rgba(255,92,140,.16),transparent 70%),
+      radial-gradient(1200px 900px at 50% 0%,#1d2340 0%,transparent 70%),
+      linear-gradient(180deg,#121630 0%,#0b0e1e 55%,#080a14 100%);
+  }
+</style>
+</head>
+<body>
+  <div id="wall"><div id="root"></div></div>
+  <script type="module" src="./main.tsx"></script>
+</body>
+</html>

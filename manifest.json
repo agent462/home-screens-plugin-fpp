@@ -1,0 +1,76 @@
+{
+  "id": "fpp",
+  "name": "Light Show",
+  "version": "0.1.0",
+  "description": "A home base for your Falcon Player (FPP) light show: what's playing, where the show is tonight, and how every controller is doing.",
+  "author": "agent462",
+  "license": "MIT",
+  "minAppVersion": "1.14.0",
+  "moduleType": "fpp",
+  "category": "Media & Display",
+  "icon": "Sparkles",
+
+  "defaultConfig": {
+    "playerAddress": "",
+    "view": "show",
+    "songNames": "tags",
+    "covers": true,
+    "hiddenControllers": []
+  },
+
+  "defaultSize": { "w": 1080, "h": 1920 },
+  "fillsCanvasOnAdd": true,
+
+  "defaultStyle": {
+    "fontSize": 16,
+    "padding": 24,
+    "textColor": "#f4f6ff",
+    "backgroundColor": "rgba(7, 9, 20, 0.5)",
+    "backdropBlur": 26,
+    "borderRadius": 0
+  },
+
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "playerAddress": {
+        "type": "string",
+        "title": "Show player",
+        "description": "The address of the FPP player that runs your show, like 192.168.0.200 or fpp.local. The controllers are found through it.",
+        "ui:widget": "text"
+      },
+      "view": {
+        "type": "string",
+        "title": "View",
+        "enum": ["show", "player", "controllers", "strip"],
+        "enumNames": ["Show", "Player", "Controllers", "Now Playing strip"]
+      },
+      "songNames": {
+        "type": "string",
+        "title": "Song names from",
+        "enum": ["tags", "sequence"],
+        "enumNames": ["Music file", "Sequence name"]
+      },
+      "covers": {
+        "type": "boolean",
+        "title": "Look up album covers",
+        "description": "Finds each song's cover through Apple's free music search."
+      },
+      "hiddenControllers": {
+        "type": "array",
+        "title": "Controllers to leave out",
+        "items": { "type": "string" }
+      }
+    }
+  },
+
+  "exports": {
+    "component": "default",
+    "configSection": "ConfigSection"
+  },
+
+  "dataRequirements": [],
+  "prefetchUrl": null,
+  "permissions": ["network", "localNetwork"],
+  "allowedDomains": ["*", "itunes.apple.com"]
+}

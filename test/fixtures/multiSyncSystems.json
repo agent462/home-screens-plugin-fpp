@@ -1,0 +1,572 @@
+{
+ "systems": [
+  {
+   "address": "192.168.0.200",
+   "hostname": "player",
+   "HostDescription": "",
+   "uuid": "M0-TEST0000",
+   "type": "Raspberry Pi 4",
+   "typeId": 13,
+   "fppModeString": "player",
+   "version": "10.x-master-3196-gc3b4ecef9",
+   "channelRanges": "0-7",
+   "local": 1,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "Pi-OLED"
+   }
+  },
+  {
+   "address": "192.168.0.118",
+   "hostname": "arches-left",
+   "uuid": "M0-TEST0001",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "341292-354056",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.104",
+   "hostname": "k8-showstopper",
+   "uuid": "M0-TEST0002",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "27447-32834",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-Max"
+   }
+  },
+  {
+   "address": "192.168.0.112",
+   "hostname": "pixel-poles",
+   "uuid": "M0-TEST0003",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "102459-108458",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.102",
+   "hostname": "right-singing-faces",
+   "uuid": "M0-TEST0004",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "9279-16466",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.103",
+   "hostname": "mega",
+   "uuid": "M0-TEST0005",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "16467-27446",
+   "local": 0,
+   "lastSeen": 1794242908,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "192.168.0.117",
+   "hostname": "arches-right",
+   "uuid": "M0-TEST0006",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "328527-341291",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.110",
+   "hostname": "garage",
+   "uuid": "M0-TEST0007",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "82080-89873",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.111",
+   "hostname": "spinarchy",
+   "uuid": "M0-TEST0008",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "89874-102458",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "192.168.0.108",
+   "hostname": "k8-merry",
+   "uuid": "M0-TEST0009",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "69915-75743",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-B"
+   }
+  },
+  {
+   "address": "192.168.0.106",
+   "hostname": "flake",
+   "uuid": "M0-TEST0010",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "43635-63914",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "192.168.0.101",
+   "hostname": "left-mini-trees",
+   "uuid": "M0-TEST0011",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "4491-9278",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.107",
+   "hostname": "illusion",
+   "uuid": "M0-TEST0012",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "63915-69914",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K4-PB"
+   }
+  },
+  {
+   "address": "192.168.0.113",
+   "hostname": "quad-props",
+   "uuid": "M0-TEST0013",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "0-7",
+   "local": 0,
+   "lastSeen": 1794242907,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "192.168.0.204",
+   "hostname": "sign-right",
+   "uuid": "M0-TEST0014",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "254799-328526",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "PocketScroller"
+   }
+  },
+  {
+   "address": "192.168.0.115",
+   "hostname": "house-left",
+   "uuid": "M0-TEST0015",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "142023-152270",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "192.168.0.100",
+   "hostname": "roof",
+   "uuid": "M0-TEST0016",
+   "type": "Raspberry Pi 4",
+   "typeId": 13,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "0-4490",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-Pi"
+   }
+  },
+  {
+   "address": "192.168.0.114",
+   "hostname": "house-right",
+   "uuid": "M0-TEST0017",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "122013-142022",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4b5e%wlan0",
+   "hostname": "arches-right",
+   "uuid": "M0-TEST0006",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "328527-341291",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:41d6%wlan0",
+   "hostname": "arches-left",
+   "uuid": "M0-TEST0001",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "341292-354056",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4cc2%wlan0",
+   "hostname": "sign-right",
+   "uuid": "M0-TEST0014",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "254799-328526",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "PocketScroller"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4124%wlan0",
+   "hostname": "illusion",
+   "uuid": "M0-TEST0012",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "63915-69914",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K4-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:415c%wlan0",
+   "hostname": "pixel-poles",
+   "uuid": "M0-TEST0003",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "102459-108458",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::beec:43ff:fe43:77f8%wlan0",
+   "hostname": "right-singing-faces",
+   "uuid": "M0-TEST0004",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "9279-16466",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:465e%wlan0",
+   "hostname": "k8-showstopper",
+   "uuid": "M0-TEST0002",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "27447-32834",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K8-Max"
+   }
+  },
+  {
+   "address": "fe80::beec:43ff:fe43:76d3%wlan0",
+   "hostname": "mega",
+   "uuid": "M0-TEST0005",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "16467-27446",
+   "local": 0,
+   "lastSeen": 1794242905,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "192.168.0.203",
+   "hostname": "sign-left",
+   "uuid": "M0-TEST0018",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "181071-254798",
+   "local": 0,
+   "lastSeen": 1794243037,
+   "capeInfo": {
+    "name": "PocketScroller"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:484a%wlan0",
+   "hostname": "k8-merry",
+   "uuid": "M0-TEST0009",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "69915-75743",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-B"
+   }
+  },
+  {
+   "address": "fe80::dea6:32ff:fe1d:7470%wlan0",
+   "hostname": "player",
+   "uuid": "M0-TEST0000",
+   "type": "Raspberry Pi 4",
+   "typeId": 13,
+   "fppModeString": "player",
+   "version": "10.x-master-3196-gc3b4ecef9",
+   "channelRanges": "0-7",
+   "local": 0,
+   "lastSeen": 1794242906
+  },
+  {
+   "address": "fe80::beec:43ff:fe43:772d%wlan0",
+   "hostname": "flake",
+   "uuid": "M0-TEST0010",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "43635-63914",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "fe80::e65f:1ff:fe89:a985%wlan0",
+   "hostname": "roof",
+   "uuid": "M0-TEST0016",
+   "type": "Raspberry Pi 4",
+   "typeId": 13,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "0-4490",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-Pi"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4afc%wlan0",
+   "hostname": "house-left",
+   "uuid": "M0-TEST0015",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "142023-152270",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4876%wlan0",
+   "hostname": "spinarchy",
+   "uuid": "M0-TEST0008",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "89874-102458",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "fe80::beec:43ff:fe43:7747%wlan0",
+   "hostname": "left-mini-trees",
+   "uuid": "M0-TEST0011",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "4491-9278",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:4094%wlan0",
+   "hostname": "garage",
+   "uuid": "M0-TEST0007",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "82080-89873",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K8-PB"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:489e%wlan0",
+   "hostname": "quad-props",
+   "uuid": "M0-TEST0013",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "0-7",
+   "local": 0,
+   "lastSeen": 1794242906,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "fe80::ea4e:6ff:feb6:16e%wlan0",
+   "hostname": "house-right",
+   "uuid": "M0-TEST0017",
+   "type": "BeagleBone Black",
+   "typeId": 65,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "122013-142022",
+   "local": 0,
+   "lastSeen": 1794242907,
+   "capeInfo": {
+    "name": "K16A-B"
+   }
+  },
+  {
+   "address": "fe80::cafe:fff:fecd:40e6%wlan0",
+   "hostname": "sign-left",
+   "uuid": "M0-TEST0018",
+   "type": "PocketBeagle2",
+   "typeId": 71,
+   "fppModeString": "remote",
+   "version": "10.4",
+   "channelRanges": "181071-254798",
+   "local": 0,
+   "lastSeen": 1794242907,
+   "capeInfo": {
+    "name": "PocketScroller"
+   }
+  }
+ ]
+}

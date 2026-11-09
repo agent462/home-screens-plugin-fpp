@@ -1,0 +1,498 @@
+import React from 'react';
+import type { ControllerView, ShowModel, SongView } from '../data/model';
+import { clockText, mmss, temperature, uptimeText, type Units } from '../lib/format';
+import { namesSentence } from '../lib/health';
+import { readingNames } from '../lib/sensors';
+import { namesFromFile } from '../lib/songs';
+import { BrandMark, Icon } from './icons';
+import { useNow } from './hooks';
+import { C, clamp, E, ellipsis, kicker, tnum, TONE, type ToneName } from './tokens';
+
+export interface Env {
+  units: Units;
+  timeZone: string;
+  locale: string;
+  now: number;
+  address: string;
+}
+
+// ── Header and pill ─────────────────────────────────────────────────────────
+
+export function Header({ sub, pill }: { sub: string; pill: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: E(20), minHeight: E(84), flex: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: E(18), minWidth: 0 }}>
+        <BrandMark width={E(78)} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: E(40), fontWeight: 750, letterSpacing: '-.02em', lineHeight: 1 }}>Light Show</div>
+          <div style={{ fontSize: E(23), color: C.ink2, marginTop: E(7), fontWeight: 500, ...ellipsis }}>{sub}</div>
+        </div>
+      </div>
+      {pill}
+    </div>
+  );
+}
+
+export function Pill({ tone, text, small }: { tone: ToneName; text: string; small?: boolean }) {
+  const t = TONE[tone];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: E(12), height: E(small ? 46 : 56), padding: `0 ${E(small ? 18 : 24)}`,
+      borderRadius: 999, fontSize: E(small ? 20 : 24), fontWeight: 650, whiteSpace: 'nowrap', flex: 'none',
+      background: t.bg, border: `1px solid ${t.border}`, color: t.text,
+    }}>
+      <span style={{
+        width: E(small ? 11 : 14), height: E(small ? 11 : 14), borderRadius: '50%', background: t.dot,
+        boxShadow: tone === 'ok' ? `0 0 0 ${E(6)} rgba(94,224,143,.18), 0 0 ${E(18)} rgba(94,224,143,.8)` : undefined,
+      }} />
+      {text}
+    </span>
+  );
+}
+
+/** The header pill for the show views. */
+export function showPill(m: ShowModel, env: Env, small = false): React.ReactNode {
+  if (!m.hasData) return null;
+  if (!m.reachable) return <Pill tone="bad" text="Not answering" small={small} />;
+  const p = m.phase;
+  if (p.kind === 'playing') {
+    if (p.paused) return <Pill tone="gold" text="Paused" small={small} />;
+    return <Pill tone="ok" text={p.endsAt && !small ? `Live until ${clockText(p.endsAt, env.timeZone, env.locale)}` : 'Live'} small={small} />;
+  }
+  if (p.kind === 'waiting') {
+    const today = new Date(p.nextAt).toDateString() === new Date(env.now).toDateString();
+    const when = today
+      ? clockText(p.nextAt, env.timeZone, env.locale)
+      : new Intl.DateTimeFormat(env.locale, { timeZone: env.timeZone, month: 'short', day: 'numeric' }).format(p.nextAt);
+    return <Pill tone="gold" text={`Starts ${when}`} small={small} />;
+  }
+  if (p.kind === 'done') return <Pill tone="unknown" text="Done for tonight" small={small} />;
+  return <Pill tone="unknown" text="No show scheduled" small={small} />;
+}
+
+export function headerSub(env: Env): string {
+  try {
+    const day = new Intl.DateTimeFormat(env.locale, { timeZone: env.timeZone, weekday: 'long', month: 'short', day: 'numeric' }).format(env.now);
+    return `${day} · ${clockText(env.now, env.timeZone, env.locale)}`;
+  } catch {
+    return '';
+  }
+}
+
+// ── Covers ──────────────────────────────────────────────────────────────────
+
+export function Cover({ url, size, radius, shadow = true, style }: { url: string | null; size: string; radius: string; shadow?: boolean; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, flex: 'none', backgroundSize: 'cover', backgroundPosition: 'center',
+      backgroundImage: url ? `url("${url}")` : 'linear-gradient(140deg,#3b2a6b,#1c3d6e 55%,#0f5a5a)',
+      boxShadow: shadow ? `0 ${E(26)} ${E(60)} rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.10)` : '0 0 0 1px rgba(255,255,255,.1)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.85)', ...style,
+    }}>
+      {!url && <Icon name="music" size="42%" />}
+    </div>
+  );
+}
+
+export function Mosaic({ songs, size, gap = E(8), radius = E(26) }: { songs: SongView[]; size: string; gap?: string; radius?: string }) {
+  // Nine different covers from across the playlist; plain tiles only when
+  // there are not enough (songs share albums, some have no cover).
+  const covers = [...new Set(songs.map((s) => s.cover).filter((u): u is string => !!u))];
+  const tiles = Array.from({ length: 9 }, (_, i) => covers[i] ?? null);
+  return (
+    <div style={{
+      width: size, height: size, flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap,
+      borderRadius: radius, overflow: 'hidden', boxShadow: `0 ${E(26)} ${E(60)} rgba(0,0,0,.5)`,
+    }}>
+      {tiles.map((u, i) => (
+        <i key={i} style={{
+          display: 'block', backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundImage: u ? `url("${u}")` : `linear-gradient(${140 + i * 25}deg,#3b2a6b,#1c3d6e 55%,#0f5a5a)`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+/** The cover, blurred, behind a card or the whole module. A still layer. */
+export function Backdrop({ url, blur, opacity, shade, inset }: { url: string | null; blur: string; opacity: number; shade: string; inset: string }) {
+  return (
+    <>
+      {url && (
+        <div aria-hidden="true" style={{
+          position: 'absolute', inset, backgroundImage: `url("${url}")`, backgroundSize: 'cover', backgroundPosition: 'center',
+          filter: `blur(${blur}) saturate(1.5)`, opacity, pointerEvents: 'none',
+        }} />
+      )}
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: shade, pointerEvents: 'none' }} />
+    </>
+  );
+}
+
+// ── Song progress ───────────────────────────────────────────────────────────
+
+/** Seconds into the current song right now: the last status plus the time
+ *  since it arrived, so the bar moves between polls. */
+export function liveElapsed(m: ShowModel, now: number): number {
+  if (m.phase.kind !== 'playing' || m.phase.paused || m.statusAt === null) return m.elapsed;
+  return Math.min(m.duration || Infinity, m.elapsed + Math.max(0, now - m.statusAt) / 1000);
+}
+
+/** Only these re-render every second while a song plays; the rest of the
+ *  view refreshes on the slow tick. */
+export function LiveProgress({ m, barH, font }: { m: ShowModel; barH?: number; font?: number }) {
+  const now = useNow(1000, m.phase.kind === 'playing' && !m.phase.paused);
+  return <Progress elapsed={liveElapsed(m, now)} duration={m.duration} barH={barH} font={font} />;
+}
+
+export function LiveSegments({ m, font }: { m: ShowModel; font?: number }) {
+  const now = useNow(1000, m.phase.kind === 'playing' && !m.phase.paused);
+  return <Segments m={m} index={m.current?.index ?? -1} elapsed={liveElapsed(m, now)} font={font} />;
+}
+
+
+export function Progress({ elapsed, duration, barH = 12, font = 24 }: { elapsed: number; duration: number; barH?: number; font?: number }) {
+  const pct = duration > 0 ? Math.min(100, (elapsed / duration) * 100) : 0;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: E(14) }}>
+      <div style={{ height: E(barH), borderRadius: 99, background: 'rgba(255,255,255,.16)', overflow: 'hidden' }}>
+        <i style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 99, background: 'linear-gradient(90deg,#fff2cf,#ffffff)' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: E(font), color: C.ink2, fontWeight: 550, ...tnum }}>
+        <span>{mmss(elapsed)}</span>
+        <span>-{mmss(Math.max(0, duration - elapsed))}</span>
+      </div>
+    </div>
+  );
+}
+
+/** "2026" → "2026 playlist"; a name that already says playlist stays. */
+export const playlistWords = (name: string) => (/playlist/i.test(name) ? name : `${name} playlist`);
+
+/** The playlist as segments, each sized to its song. */
+export function Segments({ m, index, elapsed, upcoming, font = 21 }: { m: ShowModel; index: number; elapsed: number; upcoming?: boolean; font?: number }) {
+  if (m.songs.length === 0) return null;
+  const total = m.songs.reduce((t, s) => t + s.duration, 0);
+  const done = m.songs.slice(0, Math.max(0, index)).reduce((t, s) => t + s.duration, 0) + (index >= 0 ? elapsed : 0);
+  const left = Math.max(0, Math.round((total - done) / 60));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: E(12) }}>
+      <div style={{ display: 'flex', gap: E(5), height: E(16) }}>
+        {m.songs.map((s, i) => {
+          const state = upcoming ? 'up' : i < index ? 'done' : i === index ? 'cur' : 'up';
+          return (
+            <span key={i} style={{
+              flex: Math.max(1, Math.round(s.duration)), borderRadius: E(5), position: 'relative', overflow: 'hidden',
+              background: state === 'done' ? 'rgba(255,255,255,.52)' : state === 'cur' ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.14)',
+            }}>
+              {state === 'cur' && <b style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, (elapsed / Math.max(1, s.duration)) * 100)}%`, background: C.gold }} />}
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: E(16), fontSize: E(font), color: C.ink3, fontWeight: 550, ...tnum }}>
+        <span style={ellipsis}>
+          {upcoming || index < 0
+            ? <><b style={{ color: C.ink2, fontWeight: 650 }}>{m.playlistName ? playlistWords(m.playlistName) : 'Playlist'}</b> · {m.songs.length} songs</>
+            : <><b style={{ color: C.ink2, fontWeight: 650 }}>Song {index + 1} of {m.songs.length}</b>{m.playlistName ? ` · ${playlistWords(m.playlistName)}` : ''}</>}
+        </span>
+        <span style={{ flex: 'none' }}>{upcoming || index < 0 ? `${Math.round(total / 60)} min` : `${left} min until it starts over`}</span>
+      </div>
+    </div>
+  );
+}
+
+export function Queue({ label, songs, art = 72, title = 28, sub = 21 }: { label: string; songs: SongView[]; art?: number; title?: number; sub?: number }) {
+  if (songs.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ fontSize: E(20), fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: C.ink3, marginBottom: E(8) }}>{label}</div>
+      {songs.map((s) => (
+        <div key={`${s.index}-${s.song.sequence}`} style={{ display: 'flex', alignItems: 'center', gap: E(20), padding: `${E(12)} 0`, borderTop: `1px solid ${C.line}` }}>
+          <Cover url={s.cover} size={E(art)} radius={E(14)} shadow={false} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: E(title), fontWeight: 620, ...ellipsis }}>{s.names.title}</div>
+            {s.names.artist && <div style={{ fontSize: E(sub), color: C.ink3, marginTop: E(3), ...ellipsis }}>{s.names.artist}</div>}
+          </div>
+          <span style={{ fontSize: E(23), color: C.ink3, fontWeight: 550, ...tnum }}>{mmss(s.song.duration)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Health tiles ────────────────────────────────────────────────────────────
+
+/** "Quad Props", "Quad Props and Roof", "3 controllers". */
+export function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.length} controllers`;
+}
+
+export function StatTiles({ m, env, style }: { m: ShowModel; env: Env; style?: React.CSSProperties }) {
+  const s = m.summary;
+  const live = m.phase.kind === 'playing';
+  const remotes = m.controllers.filter((c) => !c.c.isPlayer).length;
+  const offline = s.offlineNames.length;
+  const syncShort = live && s.remotesPlaying < s.remotesOnline;
+  const tiles: Array<{ v: React.ReactNode; of?: string; l: string; n: string; tone?: 'ok' | 'warn' | 'bad' }> = [
+    {
+      v: s.online, of: `/ ${s.total}`, l: s.online === s.total ? 'All online' : 'Online',
+      n: offline ? `${listNames(s.offlineNames)} offline` : s.online < s.total ? 'Still checking' : 'Every controller',
+      tone: offline ? 'bad' : s.online === s.total ? 'ok' : undefined,
+    },
+    live
+      ? { v: s.remotesPlaying, of: `/ ${s.remotesOnline}`, l: 'In sync', n: 'With the player', tone: syncShort ? 'warn' : 'ok' }
+      : { v: s.remotesOnline, of: `/ ${remotes}`, l: 'Ready', n: 'For the show', tone: offline ? 'warn' : s.remotesOnline === remotes ? 'ok' : undefined },
+    { v: s.warningNames.length, l: s.warningNames.length === 1 ? 'Warning' : s.warningNames.length ? 'Warnings' : 'No warnings', n: s.warningNames.length ? listNames(s.warningNames) : 'All clear', tone: s.warningNames.length ? 'warn' : undefined },
+    { v: s.warmest ? `${temperature(s.warmest.celsius, env.units)}°` : '–', l: 'Warmest', n: s.warmest?.name ?? '' },
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: E(16), flex: 'none', ...style }}>
+      {tiles.map((t, i) => {
+        const tone = t.tone === 'warn' ? TONE.warn : t.tone === 'bad' ? TONE.bad : null;
+        return (
+          <div key={i} style={{
+            borderRadius: E(26), background: tone ? tone.bg : C.glass, border: `1px solid ${tone ? tone.border : C.line}`,
+            padding: `${E(16)} ${E(20)}`, display: 'flex', flexDirection: 'column', gap: E(6), minWidth: 0, justifyContent: 'center',
+          }}>
+            <div style={{ fontSize: E(42), fontWeight: 760, letterSpacing: '-.02em', lineHeight: 1.05, display: 'flex', alignItems: 'baseline', gap: E(6), color: t.tone === 'ok' ? C.okText : tone?.text, ...tnum }}>
+              {t.v}{t.of && <small style={{ fontSize: E(26), color: C.ink3, fontWeight: 650 }}>{t.of}</small>}
+            </div>
+            <div style={{ fontSize: E(20), color: C.ink2, fontWeight: 600, ...ellipsis }}>{t.l}</div>
+            <div style={{ fontSize: E(19), color: C.ink3, fontWeight: 550, marginTop: E(-4), ...ellipsis }}>{t.n}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Controller cards ────────────────────────────────────────────────────────
+
+const toneOf = (v: ControllerView): ToneName => v.health.tone === 'unknown' ? 'unknown' : v.health.tone;
+
+function Dot({ v, size = 13 }: { v: ControllerView; size?: number }) {
+  const t = TONE[toneOf(v)];
+  return <span style={{
+    width: E(size), height: E(size), borderRadius: '50%', flex: 'none', background: t.dot,
+    boxShadow: v.health.offline ? `0 0 0 ${E(5)} rgba(255,107,107,.18)` : undefined,
+  }} />;
+}
+
+function cardFrame(v: ControllerView): React.CSSProperties {
+  const h = v.health;
+  const base: React.CSSProperties = {
+    position: 'relative', borderRadius: E(22), background: C.glass, border: `1px solid ${C.line}`, minWidth: 0, minHeight: 0,
+    overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer',
+    textAlign: 'left', color: 'inherit', font: 'inherit',
+  };
+  if (h.offline) return { ...base, background: 'rgba(255,107,107,.07)', borderColor: 'rgba(255,107,107,.40)' };
+  if (h.tone === 'warn') return { ...base, borderColor: h.reason === 'warning' ? 'rgba(251,191,36,.42)' : 'rgba(251,191,36,.30)' };
+  if (v.c.isPlayer) return { ...base, background: 'linear-gradient(135deg, rgba(255,207,107,.13), rgba(255,207,107,.04))', borderColor: 'rgba(255,207,107,.30)' };
+  return base;
+}
+
+const Badge = () => (
+  <span style={{ fontSize: E(15), fontWeight: 750, letterSpacing: '.1em', textTransform: 'uppercase', color: '#1a1408', background: C.gold, borderRadius: 99, padding: `${E(3)} ${E(9)}`, flex: 'none' }}>Player</span>
+);
+
+function Label({ v }: { v: ControllerView }) {
+  if (!v.health.label) return null;
+  const t = TONE[toneOf(v)];
+  return <span style={{ fontSize: E(19), fontWeight: 700, whiteSpace: 'nowrap', color: t.text, flex: 'none' }}>{v.health.label}</span>;
+}
+
+function lastHeard(v: ControllerView, env: Env): string {
+  const at = v.reading.lastOkAt;
+  return at ? `Last heard ${clockText(at, env.timeZone, env.locale)}` : 'Not heard from yet';
+}
+
+export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: ControllerView; env: Env; onOpen: (id: string) => void; pad?: number[] }) {
+  const s = v.health.sensors;
+  const checking = !v.reading.status && !v.health.offline;
+  return (
+    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), padding: pad.map(E).join(' ') }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
+          <Dot v={v} />
+          <span style={{ fontSize: E(26), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, ...ellipsis }}>{v.c.name}</span>
+          {v.c.isPlayer && <Badge />}
+          <Label v={v} />
+        </div>
+        <div style={{ fontSize: E(19), color: C.ink3, marginTop: E(2), paddingLeft: E(25), fontWeight: 500, ...ellipsis, ...tnum }}>
+          {v.c.address} · {v.c.cape}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: E(16), paddingLeft: E(25), fontSize: E(20), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap', ...tnum }}>
+        {v.health.offline ? <span>{lastHeard(v, env)}</span>
+          : checking ? <span style={{ color: C.ink3 }}>Checking…</span>
+          : <>
+            {s.hottest !== null && <Metric icon="therm" text={`${temperature(s.hottest, env.units)}°`} warn={s.hot} />}
+            {s.lowestSupply !== null && <Metric icon="zap" text={`${s.lowestSupply.toFixed(1)} V`} warn={s.lowPower} />}
+          </>}
+      </div>
+    </div>
+  );
+}
+
+function Metric({ icon, text, warn }: { icon: 'therm' | 'zap'; text: string; warn: boolean }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), color: warn ? '#ffd56b' : undefined }}>
+      <Icon name={icon} size={E(19)} style={{ opacity: warn ? 1 : 0.75 }} />{text}
+    </span>
+  );
+}
+
+export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView; env: Env; onOpen: (id: string) => void; statFont?: number }) {
+  const s = v.health.sensors;
+  const up = v.reading.status?.uptimeTotalSeconds;
+  const stat = (label: string, value: string, warn = false) => (
+    <span key={label} style={{ color: warn ? '#ffd56b' : undefined }}>
+      <em style={{ fontStyle: 'normal', color: C.ink3, fontWeight: 550, marginRight: E(7) }}>{label}</em>{value}
+    </span>
+  );
+  const checking = !v.reading.status && !v.health.offline;
+  return (
+    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), padding: `${E(18)} ${E(22)} ${E(16)} ${E(24)}`, borderRadius: E(24) }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
+          <Dot v={v} />
+          <span style={{ fontSize: E(29), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, ...ellipsis }}>{v.c.name}</span>
+          {v.c.isPlayer && <Badge />}
+          <Label v={v} />
+        </div>
+        <div style={{ fontSize: E(20), color: C.ink3, marginTop: E(2), paddingLeft: E(25), display: 'flex', justifyContent: 'space-between', gap: E(16), fontWeight: 500 }}>
+          <span style={ellipsis}>{v.c.cape} · {v.c.boardShort}</span>
+          <span style={{ flex: 'none', ...tnum }}>{v.c.address}</span>
+        </div>
+      </div>
+      {v.health.warnings[0] && (
+        <div style={{ paddingLeft: E(25), fontSize: E(19), color: C.warnText, lineHeight: 1.3, ...ellipsis }}>{v.health.warnings[0]}</div>
+      )}
+      <div style={{ display: 'flex', gap: E(statFont < 21 ? 16 : 22), paddingLeft: E(25), fontSize: E(statFont), fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', ...tnum }}>
+        {v.health.offline
+          ? v.reading.lastOkAt
+            ? [stat('Last heard', clockText(v.reading.lastOkAt, env.timeZone, env.locale)), typeof up === 'number' ? stat('Was up', uptimeText(up)) : null]
+            : <span style={{ color: C.ink2, fontWeight: 600 }}>Not heard from yet</span>
+          : checking ? <span style={{ color: C.ink3, fontWeight: 550 }}>Checking…</span>
+          : [s.chip !== null ? stat('Chip', `${temperature(s.chip, env.units)}°`, s.chip >= 75) : null,
+             s.board !== null ? stat('Board', `${temperature(s.board, env.units)}°`, s.board >= 75) : null,
+             s.lowestSupply !== null ? stat('Power', `${s.lowestSupply.toFixed(1)} V`, s.lowPower) : null]}
+      </div>
+    </div>
+  );
+}
+
+/** Columns and rows for N cards: the mockup's grid for up to 21 boxes, more
+ *  columns for bigger shows, and never fewer rows than the mockup so a small
+ *  show keeps full-size cards. */
+export function gridShape(n: number, cols: number, minRows: number): { cols: number; rows: number } {
+  let c = cols;
+  while (Math.ceil(n / c) > minRows && c < cols + 2) c++;
+  return { cols: c, rows: Math.max(minRows, Math.ceil(n / c)) };
+}
+
+// ── Detail sheet ────────────────────────────────────────────────────────────
+
+function statusLine(v: ControllerView, m: ShowModel, env: Env): string {
+  if (v.health.offline) {
+    const at = v.reading.lastOkAt;
+    return at ? `${v.health.label.replace('Offline · ', 'Offline for ')} · last heard ${clockText(at, env.timeZone, env.locale)}` : 'Has not answered yet';
+  }
+  if (!v.reading.status) return 'Checking…';
+  const playing = (v.reading.status.status_name ?? '') === 'playing';
+  const live = m.phase.kind === 'playing';
+  let line = v.c.isPlayer ? (live ? 'Playing the show' : 'Waiting for the show') : live ? (playing ? 'In sync' : 'Not playing') : 'Ready';
+  if (v.health.warnings.length) line += v.health.warnings.length > 1 ? ` · has ${v.health.warnings.length} warnings` : ' · has a warning';
+  else if (v.health.label && v.health.reason !== 'notPlaying') line += ` · ${v.health.label.toLowerCase()}`;
+  return line;
+}
+
+export function Sheet({ v, m, env, landscape, onClose }: { v: ControllerView; m: ShowModel; env: Env; landscape: boolean; onClose: () => void }) {
+  React.useEffect(() => {
+    const t = setTimeout(onClose, 20_000);
+    return () => clearTimeout(t);
+  }, [onClose, v.c.id]);
+  const st = v.reading.status;
+  const playing = st && (st.status_name ?? '') === 'playing' ? namesFromFile(st.sequence_filename || st.current_sequence || '').title : '';
+  const up = st?.uptimeTotalSeconds;
+  const facts: Array<[string, string]> = [
+    ['Board', v.c.cape === v.c.board ? v.c.board : `${v.c.cape} on ${v.c.board}`],
+    ['Address', v.c.address],
+    ['FPP version', st?.version || v.c.version || 'Unknown'],
+    [v.health.offline ? 'Was up for' : 'Up for', typeof up === 'number' ? uptimeText(up) : 'Unknown'],
+    ['Channels', v.c.rangeText || 'None'],
+    ['Playing', v.health.offline ? 'Nothing' : playing || 'Nothing'],
+  ];
+  const names = readingNames(v.health.sensors.readings);
+  const chips = v.health.offline ? [] : v.health.sensors.readings.map((r, i) => (
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), height: E(46), padding: `0 ${E(16)}`, borderRadius: E(14), background: 'rgba(255,255,255,.06)', fontSize: E(22), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap' }}>
+      <em style={{ fontStyle: 'normal', color: C.ink3, fontWeight: 550 }}>{names[i]}</em>
+      {r.kind === 'power' ? `${r.value.toFixed(1)} V` : `${temperature(r.value, env.units)}°`}
+    </span>
+  ));
+  const tone = TONE[toneOf(v)];
+  const warnings = v.health.warnings.slice(0, 3).map((w, i) => (
+    <div key={i} style={{ marginTop: i ? E(12) : 0, borderRadius: E(22), background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.35)', padding: `${E(20)} ${E(24)}`, display: 'flex', gap: E(16) }}>
+      <Icon name="warn" size={E(32)} color="#ffd56b" style={{ marginTop: E(2) }} />
+      <div>
+        <div style={{ fontSize: E(20), fontWeight: 700, color: '#ffd56b', letterSpacing: '.06em', textTransform: 'uppercase' }}>Warning from the controller</div>
+        <div style={{ fontSize: E(25), marginTop: E(6), lineHeight: 1.35, color: '#fff4d6' }}>{w}</div>
+      </div>
+    </div>
+  ));
+  const factGrid = landscape ? (
+    <div style={{ display: 'grid', gap: E(8) }}>
+      {facts.map(([k, val]) => (
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: E(20), padding: `${E(14)} ${E(22)}`, borderRadius: E(16), background: 'rgba(255,255,255,.05)' }}>
+          <span style={{ fontSize: E(19), color: C.ink3, fontWeight: 600 }}>{k}</span>
+          <span style={{ fontSize: E(24), fontWeight: 650, textAlign: 'right', ...ellipsis }}>{val}</span>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: E(14), marginTop: E(34) }}>
+      {facts.map(([k, val]) => (
+        <div key={k} style={{ background: 'rgba(255,255,255,.05)', borderRadius: E(20), padding: `${E(18)} ${E(22)}`, minWidth: 0 }}>
+          <div style={{ fontSize: E(19), color: C.ink3, fontWeight: 600 }}>{k}</div>
+          <div style={{ fontSize: E(28), fontWeight: 650, marginTop: E(6), ...clamp(2) }}>{val}</div>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(4,5,12,.62)' }} />
+      <div role="dialog" aria-label={v.c.name} style={{
+        position: 'absolute', left: landscape ? '13%' : E(60), right: landscape ? '13%' : E(60), top: landscape ? '17.5%' : '15.6%',
+        borderRadius: E(40), background: '#161a2b', border: `1px solid ${C.line2}`, boxShadow: `0 ${E(40)} ${E(120)} rgba(0,0,0,.6)`,
+        padding: `${E(40)} ${E(44)}`, color: '#f4f6ff',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: E(18) }}>
+          <span style={{ width: E(18), height: E(18), borderRadius: '50%', background: tone.dot, flex: 'none' }} />
+          <h4 style={{ fontSize: E(46), fontWeight: 760, letterSpacing: '-.02em', flex: 1, margin: 0, ...ellipsis }}>{v.c.name}</h4>
+          <button type="button" aria-label="Close" onClick={onClose} style={{ width: E(76), height: E(76), borderRadius: '50%', background: 'rgba(255,255,255,.08)', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
+            <Icon name="x" size={E(34)} />
+          </button>
+        </div>
+        <div style={{ fontSize: E(24), color: C.ink2, marginTop: E(10), paddingLeft: E(36) }}>{statusLine(v, m, env)}</div>
+        {landscape ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: E(28), marginTop: E(30), alignItems: 'start' }}>
+            <div>{warnings}{chips.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: E(8), marginTop: warnings.length ? E(18) : 0 }}>{chips}</div>}</div>
+            {factGrid}
+          </div>
+        ) : (
+          <>
+            {warnings.length > 0 && <div style={{ marginTop: E(22) }}>{warnings}</div>}
+            {factGrid}
+            {chips.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: E(8), marginTop: E(18) }}>{chips}</div>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export { kicker };
