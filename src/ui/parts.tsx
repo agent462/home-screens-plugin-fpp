@@ -6,7 +6,7 @@ import { readingNames } from '../lib/sensors';
 import { namesFromFile } from '../lib/songs';
 import { BrandMark, Icon } from './icons';
 import { useNow } from './hooks';
-import { C, clamp, E, ellipsis, kicker, tnum, TONE, type ToneName } from './tokens';
+import { C, clamp, E, ellipsis, kicker, outline, tnum, TONE, type ToneName } from './tokens';
 
 export interface Env {
   units: Units;
@@ -284,7 +284,7 @@ function Dot({ v, size = 13 }: { v: ControllerView; size?: number }) {
 function cardFrame(v: ControllerView): React.CSSProperties {
   const h = v.health;
   const base: React.CSSProperties = {
-    position: 'relative', borderRadius: E(22), background: C.glass, border: `1px solid ${C.line}`, minWidth: 0, minHeight: 0,
+    position: 'relative', borderRadius: E(22), background: C.glass, ...outline(C.line), minWidth: 0, minHeight: 0,
     overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer',
     textAlign: 'left', color: 'inherit', font: 'inherit',
   };

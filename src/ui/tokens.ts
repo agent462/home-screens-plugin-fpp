@@ -41,6 +41,12 @@ export const TONE = {
 } as const;
 export type ToneName = keyof typeof TONE;
 
+/** A 1 px border as longhand properties. Anything that later swaps only the
+ *  color must start from this, not the `border` shorthand: React warns, and
+ *  can leave the wrong color, when a longhand is added or dropped under a
+ *  shorthand between renders. */
+export const outline = (color: string): CSSProperties => ({ borderWidth: 1, borderStyle: 'solid', borderColor: color });
+
 export const ellipsis: CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 export const clamp = (lines: number): CSSProperties => ({
   display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical', overflow: 'hidden',

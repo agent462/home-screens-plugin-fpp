@@ -7,7 +7,7 @@ import { Bars, BrandMark, Icon } from './icons';
 import {
   Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, playlistWords, LiveSegments, Mosaic, Pill, Queue, Segments, showPill, StatTiles, type Env,
 } from './parts';
-import { C, clamp, E, ellipsis, kicker, tnum } from './tokens';
+import { C, clamp, E, ellipsis, kicker, outline, tnum } from './tokens';
 
 export type ViewName = 'show' | 'player' | 'controllers' | 'strip';
 export type Orientation = 'portrait' | 'landscape';
@@ -126,7 +126,7 @@ function PlayerFoot({ m }: { m: ShowModel }) {
 
 const chip: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: E(10), height: E(46), padding: `0 ${E(18)}`, borderRadius: 999,
-  background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.09)', fontSize: E(21), color: 'rgba(232,238,255,.66)', fontWeight: 550, whiteSpace: 'nowrap',
+  background: 'rgba(255,255,255,.08)', ...outline('rgba(255,255,255,.09)'), fontSize: E(21), color: 'rgba(232,238,255,.66)', fontWeight: 550, whiteSpace: 'nowrap',
 };
 
 function PlayerMeta({ m, big }: { m: ShowModel; big: number }) {
