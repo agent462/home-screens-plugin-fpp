@@ -5,7 +5,8 @@ import { calendarDaysBetween } from '../lib/format';
 import { untilText } from '../lib/schedule';
 import { Bars, Icon, type IconName } from './icons';
 import { Backdrop, Cover, LiveProgress, LiveSegments, Mosaic, nextList, playingTag, Queue, Segments, Tag, voteLeader, votesText, type Env } from './parts';
-import { C, clamp, E, ellipsis, kicker, outline } from './tokens';
+import { C, clamp, E, ellipsis, kicker, outline, tv } from './tokens';
+import { STAGE } from './theme';
 
 /** "Friday,\nNovember 27", or "Tonight" / "Tomorrow". */
 export function nextDayWords(at: number, env: Env): string[] {
@@ -26,7 +27,7 @@ function HeroCard({ cover, compact, grow, children, style }: { cover?: string | 
     <div style={{
       position: 'relative', borderRadius: E(40), overflow: 'hidden', flex: grow ? '1 1 auto' : 'none', minHeight: 0,
       padding: compact ? `${E(28)} ${E(30)}` : `${E(34)} ${E(36)}`, display: 'flex', flexDirection: 'column', gap: E(compact ? 24 : 28),
-      ...outline('rgba(255,255,255,.14)'), background: '#121527', color: '#f4f6ff', ...style,
+      ...outline(tv('stage-line', 'rgba(255,255,255,.14)')), background: '#121527', color: '#f4f6ff', boxShadow: C.shadow, ...STAGE, ...style,
     }}>
       <Backdrop url={cover ?? null} blur={E(70)} opacity={0.62} inset={E(-80)}
         shade="linear-gradient(180deg,rgba(10,12,26,.25) 0%,rgba(10,12,26,.55) 60%,rgba(10,12,26,.78) 100%)" />

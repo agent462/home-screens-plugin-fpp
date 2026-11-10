@@ -14,6 +14,7 @@ import { playerBaseUrl } from './lib/poll';
 import { useBox, useNow } from './ui/hooks';
 import { Backdrop, Sheet, type Env } from './ui/parts';
 import { designPx } from './ui/tokens';
+import { STAGE, stageAccentOf, themeById, themeCard, themePage, themeVars } from './ui/theme';
 import { ControllersView, fitScale, PlayerView, SetupView, ShowView, StripView, type Orientation } from './ui/views';
 
 export { ConfigSection } from './config-section';
@@ -142,9 +143,18 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const d = designPx(k, hostFont);
   const px = (n: number) => `${Math.round(n * k * (hostFont / 16))}px`;
 
+  // A theme paints its own page (or, for the strip, its own card) in place of
+  // the host's glass. The player view is all cover, so there a theme only
+  // lends its accent.
+  const theme = themeById(cfg.theme);
+  const stage = cfg.view === 'player';
+  const themed: React.CSSProperties | null = !theme ? null
+    : stage ? { ['--ls-stage-accent' as string]: stageAccentOf(theme) }
+    : { ...themeVars(theme), ...(cfg.view === 'strip' ? themeCard(theme) : themePage(theme)), opacity: undefined, backdropFilter: undefined, WebkitBackdropFilter: undefined };
+
   return (
-    <div ref={rootRef} style={{ ...hostFrameStyle(style), position: 'relative' }}>
-      {base && (cfg.view === 'player' || cfg.view === 'strip') && (
+    <div ref={rootRef} style={{ ...hostFrameStyle(style), position: 'relative', ...themed }}>
+      {base && (stage || (cfg.view === 'strip' && !theme)) && (
         <Backdrop url={cover} blur={px(cfg.view === 'strip' ? 50 : 90)} opacity={cfg.view === 'strip' ? 0.5 : 0.75} inset={px(cfg.view === 'strip' ? -60 : -120)}
           shade={cfg.view === 'strip'
             ? 'linear-gradient(90deg,rgba(8,10,22,.2),rgba(8,10,22,.6))'
@@ -152,7 +162,7 @@ export default function LightShow({ config, style }: PluginComponentProps) {
               ? 'linear-gradient(90deg,rgba(8,10,22,.35),rgba(8,10,22,.6) 50%,rgba(8,10,22,.85))'
               : 'linear-gradient(180deg,rgba(8,10,22,.35),rgba(8,10,22,.55) 50%,rgba(8,10,22,.88))'} />
       )}
-      <div ref={boxRef} style={{ position: 'relative', width: '100%', height: '100%', ['--d' as string]: d }}>
+      <div ref={boxRef} style={{ position: 'relative', width: '100%', height: '100%', ['--d' as string]: d, ...(stage && theme ? STAGE : null) }}>
         {body}
       </div>
       {open && model && (

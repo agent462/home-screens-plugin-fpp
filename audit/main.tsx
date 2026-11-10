@@ -4,6 +4,7 @@
  * every view and state can be screenshotted beside the design mockup.
  *
  * URL: ?view=show|player|controllers|strip&scenario=live|wait|done|down&w=1080&h=1920
+ *      &theme=linen|paper|mist|sandstone|vellum|bloom|charcoal|midnight|slate|aurora|obsidian|horizon
  * Power (plan 267): &power=1 links outlets through a fake Home Assistant;
  * &garage=off starts Garage with its outlet off, &garage=lost with the outlet
  * on but the controller dark; &ha=down|none; &panel=1 shows the settings
@@ -227,7 +228,7 @@ root.style.width = '100%';
 root.style.height = '100%';
 
 const style = { fontSize: 16, fontFamily: 'inter', textColor: '#f4f6ff', backgroundColor: 'rgba(7, 9, 20, 0.5)', borderRadius: 0, padding: 24, opacity: 1, backdropBlur: 26 };
-const config = { playerAddress: '192.168.0.200', view, songNames: 'tags', covers: true, hiddenControllers: [] };
+const config = { playerAddress: '192.168.0.200', view, theme: q.get('theme') ?? undefined, songNames: 'tags', covers: true, hiddenControllers: [] };
 // The hub's secret store, for the settings panel's Connect and Disconnect.
 const realFetch = window.fetch.bind(window);
 window.fetch = (input, init) => (String(input).startsWith('/api/plugins/secrets/')

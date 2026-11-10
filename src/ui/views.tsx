@@ -7,7 +7,7 @@ import { Bars, BrandMark, Icon } from './icons';
 import {
   Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Env,
 } from './parts';
-import { C, clamp, E, ellipsis, kicker, outline, tnum } from './tokens';
+import { C, clamp, E, ellipsis, kicker, outline, tnum, tv } from './tokens';
 
 export type ViewName = 'show' | 'player' | 'controllers' | 'strip';
 export type Orientation = 'portrait' | 'landscape';
@@ -242,15 +242,15 @@ export function StripView({ m, env }: ViewProps) {
   const side = (big: string, lab: string, tone: 'ok' | 'bad', extra?: string, pill?: React.ReactNode) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: E(10), flex: 'none', textAlign: 'right' }}>
       {pill}
-      <span style={{ fontSize: E(40), fontWeight: 760, color: tone === 'bad' ? '#ffc4c4' : C.okText, ...tnum }}>{big}</span>
-      <span style={{ fontSize: E(19), color: 'rgba(232,238,255,.66)', fontWeight: 550 }}>{lab}</span>
+      <span style={{ fontSize: E(40), fontWeight: 760, color: tone === 'bad' ? tv('bad-text', '#ffc4c4') : C.okText, ...tnum }}>{big}</span>
+      <span style={{ fontSize: E(19), color: tv('ink2', 'rgba(232,238,255,.66)'), fontWeight: 550 }}>{lab}</span>
       {extra && <span style={{ fontSize: E(19), color: C.warnText, fontWeight: 550 }}>{extra}</span>}
     </div>
   );
   const count = `${s.online}/${s.total}`;
   const warn = s.warningNames.length ? (s.warningNames.length === 1 ? '1 warning' : `${s.warningNames.length} warnings`) : undefined;
   const wrap = (children: React.ReactNode) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: E(26), height: '100%', paddingRight: E(6), color: '#f4f6ff', minWidth: 0 }}>{children}</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: E(26), height: '100%', paddingRight: E(6), color: tv('ink', '#f4f6ff'), minWidth: 0 }}>{children}</div>
   );
   const info = (k: React.ReactNode, title: string, sub: React.ReactNode, rest?: React.ReactNode) => (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -276,27 +276,27 @@ export function StripView({ m, env }: ViewProps) {
       <Mosaic songs={m.grid} size={E(164)} gap={E(4)} radius={E(22)} />
       {info(<span style={{ color: C.ice }}>Next show</span>, nextDayWords(m.phase.nextAt, env).join(' ').replace(/,$/, ''),
         <span style={{ color: C.gold }}>{nextCount(m.phase.nextAt, env)}</span>,
-        m.songs.length ? <div style={{ fontSize: E(19), color: 'rgba(232,238,255,.66)', marginTop: E(12), fontWeight: 550 }}>{playlistWords(m.playlistName)} · {m.songs.length} songs · {Math.round(m.songs.reduce((t, x) => t + x.duration, 0) / 60)} min</div> : null)}
+        m.songs.length ? <div style={{ fontSize: E(19), color: tv('ink2', 'rgba(232,238,255,.66)'), marginTop: E(12), fontWeight: 550 }}>{playlistWords(m.playlistName)} · {m.songs.length} songs · {Math.round(m.songs.reduce((t, x) => t + x.duration, 0) / 60)} min</div> : null)}
       {side(count, off ? `${listNames(s.offlineNames)} offline` : 'Controllers ready', off ? 'bad' : 'ok', warn)}
     </>);
   }
   const tile = (name: 'moon' | 'unplug' | 'plug', bad?: boolean) => (
-    <div style={{ width: E(164), height: E(164), borderRadius: E(22), flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bad ? 'rgba(255,107,107,.08)' : 'rgba(255,255,255,.06)', border: `1px solid ${bad ? 'rgba(255,107,107,.3)' : 'rgba(255,255,255,.09)'}`, color: bad ? '#ffb3b3' : 'inherit' }}>
+    <div style={{ width: E(164), height: E(164), borderRadius: E(22), flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bad ? 'rgba(255,107,107,.08)' : tv('fill2', 'rgba(255,255,255,.06)'), border: `1px solid ${bad ? 'rgba(255,107,107,.3)' : tv('line', 'rgba(255,255,255,.09)')}`, color: bad ? C.badText : 'inherit' }}>
       <Icon name={name} size={E(72)} />
     </div>
   );
-  if (m.connecting) return wrap(<>{tile('plug')}{info(<span style={{ color: C.ink3 }}>Connecting</span>, 'Finding the show player', <span style={{ color: 'rgba(232,238,255,.66)' }}>{env.address}</span>)}</>);
-  if (!m.reachable) return wrap(<>{tile('unplug', true)}{info(<span style={{ color: '#ff9b9b' }}>Not answering</span>, "Can't reach the show player", <span style={{ color: 'rgba(232,238,255,.66)' }}>Trying again every 30 seconds</span>)}</>);
+  if (m.connecting) return wrap(<>{tile('plug')}{info(<span style={{ color: C.ink3 }}>Connecting</span>, 'Finding the show player', <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>{env.address}</span>)}</>);
+  if (!m.reachable) return wrap(<>{tile('unplug', true)}{info(<span style={{ color: tv('bad-text', '#ff9b9b') }}>Not answering</span>, "Can't reach the show player", <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>Trying again every 30 seconds</span>)}</>);
   if (m.phase.kind === 'done') {
     return wrap(<>
       {tile('moon')}
-      {info(<span style={{ color: 'rgba(232,238,255,.42)' }}>Done for tonight</span>,
+      {info(<span style={{ color: tv('ink3', 'rgba(232,238,255,.42)') }}>Done for tonight</span>,
         m.phase.nextAt ? `Back ${nextDayWords(m.phase.nextAt, env).join(' ').toLowerCase().replace(/,$/, '')} at ${new Intl.DateTimeFormat(env.locale, { timeZone: env.timeZone, hour: 'numeric', minute: '2-digit' }).format(m.phase.nextAt)}` : 'That was the last show',
-        <span style={{ color: 'rgba(232,238,255,.66)' }}>{m.cadence ?? ''}</span>)}
+        <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>{m.cadence ?? ''}</span>)}
       {side(count, 'Controllers online', off ? 'bad' : 'ok')}
     </>);
   }
-  return wrap(<>{tile('moon')}{info(<span style={{ color: 'rgba(232,238,255,.42)' }}>No show scheduled</span>, 'The player is on and waiting', <span style={{ color: 'rgba(232,238,255,.66)' }}>Nothing on its schedule</span>)}{side(count, 'Controllers online', off ? 'bad' : 'ok')}</>);
+  return wrap(<>{tile('moon')}{info(<span style={{ color: tv('ink3', 'rgba(232,238,255,.42)') }}>No show scheduled</span>, 'The player is on and waiting', <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>Nothing on its schedule</span>)}{side(count, 'Controllers online', off ? 'bad' : 'ok')}</>);
 }
 
 function StripBar({ m }: { m: ShowModel }) {
@@ -311,10 +311,10 @@ function StripBar({ m }: { m: ShowModel }) {
     : [cur && cur.index >= 0 ? `Song ${cur.index + 1} of ${m.songs.length}` : '', waiting].filter(Boolean).join(' · ');
   return (
     <>
-      <div style={{ height: E(9), borderRadius: 99, background: 'rgba(255,255,255,.16)', overflow: 'hidden', marginTop: E(18) }}>
-        <i style={{ display: 'block', height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#fff2cf,#fff)' }} />
+      <div style={{ height: E(9), borderRadius: 99, background: tv('track', 'rgba(255,255,255,.16)'), overflow: 'hidden', marginTop: E(18) }}>
+        <i style={{ display: 'block', height: '100%', width: `${pct}%`, background: tv('bar', 'linear-gradient(90deg,#fff2cf,#fff)') }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: E(19), color: 'rgba(232,238,255,.66)', marginTop: E(8), fontWeight: 550, ...tnum }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: E(19), color: tv('ink2', 'rgba(232,238,255,.66)'), marginTop: E(8), fontWeight: 550, ...tnum }}>
         <span>{fmt(elapsed)}</span>{middle && <span style={ellipsis}>{middle}</span>}<span>-{fmt(Math.max(0, m.duration - elapsed))}</span>
       </div>
     </>

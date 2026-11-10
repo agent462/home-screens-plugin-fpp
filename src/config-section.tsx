@@ -6,6 +6,7 @@ import { controllersFrom, type Controller } from './lib/systems';
 import { proxyFetch, readConfig } from './config';
 import { PowerSettings } from './power-settings';
 import { RequestsSettings } from './requests-settings';
+import { ThemePicker } from './theme-picker';
 
 // This section replaces the manifest's schema renderer, so it draws every
 // setting itself.
@@ -106,6 +107,8 @@ export function ConfigSection({ config, onChange }: PluginConfigSectionProps) {
           <option value="strip">Now Playing strip: for a normal home screen</option>
         </select>
       </label>
+
+      <ThemePicker value={cfg.theme} onChange={(theme) => onChange({ theme })} />
 
       <label>
         <span style={label}>Song names from</span>

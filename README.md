@@ -80,6 +80,7 @@ A controller that misses one check is asked again 10 seconds later, and called O
 |---|---|
 | Show player | The FPP player's address. |
 | View | Show, Player, Controllers or Now Playing strip. |
+| Theme | See-through (your screen's background shows behind the module), or one of the 12 full-screen themes: Linen, Paper, Mist, Sandstone, Vellum, Bloom, Charcoal, Midnight, Slate, Aurora, Obsidian, Horizon. The player card stays dark in every theme; the Player view only takes the theme's accent color. |
 | Song names from | The music file's tags, or the sequence name (for files with wrong tags). |
 | Look up album covers | Finds covers through Apple's free music search; only the title and artist are sent. |
 | Controllers to show | Leave out any controller. |
@@ -97,4 +98,4 @@ npm run dev          # build on change and serve on :5173 for the editor's Devel
 npm run audit:build  # audit/ harness: the real views against a fake show
 ```
 
-The audit harness (`audit/`) mounts the real component with a stubbed SDK that answers from `test/fixtures/`. Serve `audit-dist/` and open `index.html?view=show&scenario=live&w=1080&h=1920` (`scenario`: `live`, `wait`, `done`, `down`). Add `&power=1` for a fake Home Assistant with made-up outlets (`&garage=off`, `&garage=lost`, `&ha=down`, `&ha=none`), or `&panel=1` for the settings panel. For a request night add `&rf=request` (also `between`, `quiet`, `vote`, or `alone` for no Remote Falcon connection), `&rfpanel=new|on|bad` for that part of the settings, and `&at=2026-11-30T19:41:40-06:00` to set the clock. Covers for the harness go in `audit/public/art/` (not committed).
+The audit harness (`audit/`) mounts the real component with a stubbed SDK that answers from `test/fixtures/`. Serve `audit-dist/` and open `index.html?view=show&scenario=live&w=1080&h=1920` (`scenario`: `live`, `wait`, `done`, `down`). Add `&power=1` for a fake Home Assistant with made-up outlets (`&garage=off`, `&garage=lost`, `&ha=down`, `&ha=none`), or `&panel=1` for the settings panel. Add `&theme=linen` (any theme id) to paint a view in a theme. For a request night add `&rf=request` (also `between`, `quiet`, `vote`, or `alone` for no Remote Falcon connection), `&rfpanel=new|on|bad` for that part of the settings, and `&at=2026-11-30T19:41:40-06:00` to set the clock. Covers for the harness go in `audit/public/art/` (not committed).

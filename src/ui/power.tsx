@@ -5,7 +5,7 @@ import { clockText } from '../lib/format';
 import type { OutletReading } from '../lib/power';
 import { useNow } from './hooks';
 import { Icon, type IconName } from './icons';
-import { C, E, ellipsis, tnum } from './tokens';
+import { C, E, ellipsis, tnum, goldTint, tv } from './tokens';
 
 /** How long a first tap keeps a button armed. */
 const ARMED_MS = 4000;
@@ -30,17 +30,17 @@ function both(names: string[]): string {
   return `${names.length} other controllers`;
 }
 
-const strong: React.CSSProperties = { color: '#fff', fontWeight: 700 };
+const strong: React.CSSProperties = { color: tv('ink', '#fff'), fontWeight: 700 };
 
 function Button({ icon, text, look, onTap, landscape }: {
   icon: IconName; text: string; look: 'plain' | 'primary' | 'dimmed' | 'danger' | 'gold'; onTap?: () => void; landscape: boolean;
 }) {
   const looks: Record<typeof look, React.CSSProperties> = {
-    plain: { background: 'rgba(255,255,255,.09)', borderColor: C.line2 },
-    dimmed: { background: 'rgba(255,255,255,.09)', borderColor: C.line2, opacity: 0.32 },
-    primary: { background: C.gold, borderColor: C.gold, color: '#1a1408' },
-    danger: { background: 'rgba(255,107,107,.26)', borderColor: '#ff8585', color: '#fff', boxShadow: `0 0 0 ${E(5)} rgba(255,107,107,.14)` },
-    gold: { background: 'rgba(255,207,107,.22)', borderColor: C.gold, color: '#fff3d6', boxShadow: `0 0 0 ${E(5)} rgba(255,207,107,.12)` },
+    plain: { background: tv('fill', 'rgba(255,255,255,.09)'), borderColor: C.line2 },
+    dimmed: { background: tv('fill', 'rgba(255,255,255,.09)'), borderColor: C.line2, opacity: 0.32 },
+    primary: { background: C.gold, borderColor: C.gold, color: C.onGold },
+    danger: { background: 'rgba(255,107,107,.26)', borderColor: '#ff8585', color: tv('ink', '#fff'), boxShadow: `0 0 0 ${E(5)} rgba(255,107,107,.14)` },
+    gold: { background: goldTint(22), borderColor: C.gold, color: tv('ink', '#fff3d6'), boxShadow: `0 0 0 ${E(5)} ${goldTint(12)}` },
   };
   return (
     <button type="button" onClick={onTap} disabled={!onTap} style={{
@@ -57,10 +57,10 @@ function Button({ icon, text, look, onTap, landscape }: {
 function Progress({ icon, text, count, pct }: { icon: IconName; text: string; count: string; pct: number }) {
   return (
     <div style={{
-      position: 'relative', marginTop: E(24), height: E(96), borderRadius: E(26), background: 'rgba(255,255,255,.06)', border: `1px solid ${C.line2}`,
+      position: 'relative', marginTop: E(24), height: E(96), borderRadius: E(26), background: tv('fill2', 'rgba(255,255,255,.06)'), border: `1px solid ${C.line2}`,
       overflow: 'hidden', display: 'flex', alignItems: 'center', gap: E(16), padding: `0 ${E(30)}`, fontSize: E(28), fontWeight: 700,
     }}>
-      <i style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(0, Math.min(100, pct))}%`, background: 'rgba(255,207,107,.16)', borderRight: '2px solid rgba(255,207,107,.5)' }} />
+      <i style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(0, Math.min(100, pct))}%`, background: goldTint(16), borderRight: `2px solid ${goldTint(50)}` }} />
       <Icon name={icon} size={E(32)} color={C.gold} style={{ position: 'relative' }} />
       <span style={{ position: 'relative', minWidth: 0, ...ellipsis }}>{text}</span>
       <span style={{ position: 'relative', marginLeft: 'auto', color: C.gold, flex: 'none', ...tnum }}>{count}</span>
@@ -109,7 +109,7 @@ export function PowerSection({ v, link, zone, landscape, onHold }: {
   const stateText = state === 'on' ? 'On'
     : state === 'na' ? "Isn't answering"
     : since && !job ? `Off since ${clockText(since, zone.timeZone, zone.locale)}` : 'Off';
-  const stateColor = state === 'off' ? '#c5cede' : state === 'na' ? C.warnText : undefined;
+  const stateColor = state === 'off' ? tv('ink2', '#c5cede') : state === 'na' ? C.warnText : undefined;
   const dot: React.CSSProperties = state === 'on' ? { background: C.ok }
     : state === 'na' ? { background: C.warn }
     : { borderWidth: E(3), borderStyle: 'solid', borderColor: C.idle };

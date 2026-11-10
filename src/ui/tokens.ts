@@ -13,30 +13,43 @@ export const designPx = (fit: number, hostFontSize: number): string => `${+(fit 
  *  reads; status colors are fixed. */
 export const mix = (pct: number): string => `color-mix(in srgb, currentColor ${pct}%, transparent)`;
 
+/** A theme token: the theme's value when the module has a theme, else the
+ *  see-through value given here (see `theme.ts`). */
+export const tv = (name: string, fallback: string): string => `var(--ls-${name}, ${fallback})`;
+const tint = (color: string, pct: number): string => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+
+const gold = tv('accent', '#ffcf6b');
 export const C = {
-  ink2: mix(66),
-  ink3: mix(42),
-  ink4: mix(22),
-  glass: mix(5.5),
-  glass2: mix(8.5),
-  line: mix(9),
-  line2: mix(14),
-  gold: '#ffcf6b',
-  ice: '#8fd8ff',
-  ok: '#5ee08f',
-  warn: '#fbbf24',
-  bad: '#ff6b6b',
-  idle: '#9aa6bd',
-  okText: '#c6f6d8',
-  warnText: '#ffdc85',
-  badText: '#ffb3b3',
+  ink2: tv('ink2', mix(66)),
+  ink3: tv('ink3', mix(42)),
+  ink4: tv('ink4', mix(22)),
+  glass: tv('glass', mix(5.5)),
+  glass2: tv('glass2', mix(8.5)),
+  line: tv('line', mix(9)),
+  line2: tv('line2', mix(14)),
+  /** A soft fill for chips and round buttons. */
+  fill: tv('fill', 'rgba(255,255,255,.08)'),
+  gold,
+  onGold: tv('on-accent', '#1a1408'),
+  ice: tv('ice', '#8fd8ff'),
+  ok: tv('ok', '#5ee08f'),
+  warn: tv('warn', '#fbbf24'),
+  bad: tv('bad', '#ff6b6b'),
+  idle: tv('idle', '#9aa6bd'),
+  okText: tv('ok-text', '#c6f6d8'),
+  warnText: tv('warn-text', '#ffdc85'),
+  badText: tv('bad-text', '#ffb3b3'),
+  shadow: tv('shadow', 'none'),
+  blur: tv('blur', 'none'),
 };
+/** The accent as a see-through tint. */
+export const goldTint = (pct: number): string => tint(gold, pct);
 
 export const TONE = {
   ok: { dot: C.ok, text: C.okText, border: 'rgba(94,224,143,.35)', bg: 'rgba(94,224,143,.14)' },
   warn: { dot: C.warn, text: C.warnText, border: 'rgba(251,191,36,.42)', bg: 'rgba(251,191,36,.08)' },
   bad: { dot: C.bad, text: C.badText, border: 'rgba(255,107,107,.40)', bg: 'rgba(255,107,107,.08)' },
-  gold: { dot: C.gold, text: '#ffe3a8', border: 'rgba(255,207,107,.32)', bg: 'rgba(255,207,107,.12)' },
+  gold: { dot: C.gold, text: tv('accent-text', '#ffe3a8'), border: goldTint(32), bg: goldTint(12) },
   unknown: { dot: C.idle, text: C.ink2, border: C.line2, bg: C.glass2 },
 } as const;
 export type ToneName = keyof typeof TONE;

@@ -13,6 +13,7 @@
   "defaultConfig": {
     "playerAddress": "",
     "view": "show",
+    "theme": "see-through",
     "songNames": "tags",
     "covers": true,
     "hiddenControllers": []
@@ -44,6 +45,13 @@
         "title": "View",
         "enum": ["show", "player", "controllers", "strip"],
         "enumNames": ["Show", "Player", "Controllers", "Now Playing strip"]
+      },
+      "theme": {
+        "type": "string",
+        "title": "Theme",
+        "description": "See-through shows your screen's background behind the module. The others match the full-screen calendar and weather themes.",
+        "enum": ["see-through", "linen", "paper", "mist", "sandstone", "vellum", "bloom", "charcoal", "midnight", "slate", "aurora", "obsidian", "horizon"],
+        "enumNames": ["See-through", "Linen", "Paper", "Mist", "Sandstone", "Vellum", "Bloom", "Charcoal", "Midnight", "Slate", "Aurora", "Obsidian", "Horizon"]
       },
       "songNames": {
         "type": "string",

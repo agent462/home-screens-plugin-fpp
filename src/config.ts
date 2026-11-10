@@ -3,12 +3,15 @@ import { RF_SECRET, RF_SHOW_URL } from './lib/remote-falcon';
 import type { SongNameSource } from './lib/songs';
 import type { ViewName } from './ui/views';
 import { readLinks, type Links } from './lib/power';
+import { SEE_THROUGH, themeById } from './ui/theme';
 
 export const PLUGIN_ID = 'fpp';
 
 export interface LightShowConfig {
   playerAddress: string;
   view: ViewName;
+  /** A theme id, or `see-through`. */
+  theme: string;
   songNames: SongNameSource;
   covers: boolean;
   hiddenControllers: string[];
@@ -20,6 +23,7 @@ export function readConfig(raw: Record<string, unknown>): LightShowConfig {
   return {
     playerAddress: typeof raw.playerAddress === 'string' ? raw.playerAddress : '',
     view: VIEWS.includes(raw.view as ViewName) ? (raw.view as ViewName) : 'show',
+    theme: themeById(typeof raw.theme === 'string' ? raw.theme : undefined)?.id ?? SEE_THROUGH,
     songNames: raw.songNames === 'sequence' ? 'sequence' : 'tags',
     covers: raw.covers !== false,
     hiddenControllers: Array.isArray(raw.hiddenControllers) ? raw.hiddenControllers.filter((x): x is string => typeof x === 'string') : [],

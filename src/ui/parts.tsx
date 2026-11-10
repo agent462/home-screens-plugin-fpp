@@ -7,7 +7,7 @@ import { namesFromFile } from '../lib/songs';
 import { BrandMark, Icon } from './icons';
 import { useNow } from './hooks';
 import { PowerSection, type PowerLink } from './power';
-import { C, clamp, E, ellipsis, kicker, mix, outline, tnum, TONE, type ToneName } from './tokens';
+import { C, clamp, E, ellipsis, goldTint, kicker, mix, outline, tnum, TONE, tv, type ToneName } from './tokens';
 
 export interface Env {
   units: Units;
@@ -323,7 +323,7 @@ export function StatTiles({ m, env, style }: { m: ShowModel; env: Env; style?: R
         const tone = t.tone === 'warn' ? TONE.warn : t.tone === 'bad' ? TONE.bad : null;
         return (
           <div key={i} style={{
-            borderRadius: E(26), background: tone ? tone.bg : C.glass, border: `1px solid ${tone ? tone.border : C.line}`,
+            borderRadius: E(26), background: tone ? tone.bg : C.glass, border: `1px solid ${tone ? tone.border : C.line}`, boxShadow: C.shadow, backdropFilter: C.blur,
             padding: `${E(16)} ${E(20)}`, display: 'flex', flexDirection: 'column', gap: E(6), minWidth: 0, justifyContent: 'center',
           }}>
             <div style={{ fontSize: E(42), fontWeight: 760, letterSpacing: '-.02em', lineHeight: 1.05, display: 'flex', alignItems: 'baseline', gap: E(6), color: t.tone === 'ok' ? C.okText : tone?.text, ...tnum }}>
@@ -357,25 +357,25 @@ function Dot({ v, size = 13 }: { v: ControllerView; size?: number }) {
 function cardFrame(v: ControllerView): React.CSSProperties {
   const h = v.health;
   const base: React.CSSProperties = {
-    position: 'relative', borderRadius: E(22), background: C.glass, ...outline(C.line), minWidth: 0, minHeight: 0,
+    position: 'relative', borderRadius: E(22), background: C.glass, ...outline(C.line), minWidth: 0, minHeight: 0, boxShadow: C.shadow, backdropFilter: C.blur,
     overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer',
     textAlign: 'left', color: 'inherit', font: 'inherit',
   };
   if (h.poweredOff) return { ...base, background: mix(3) };
   if (h.offline) return { ...base, background: 'rgba(255,107,107,.07)', borderColor: 'rgba(255,107,107,.40)' };
   if (h.tone === 'warn') return { ...base, borderColor: h.reason === 'warning' ? 'rgba(251,191,36,.42)' : 'rgba(251,191,36,.30)' };
-  if (v.c.isPlayer) return { ...base, background: 'linear-gradient(135deg, rgba(255,207,107,.13), rgba(255,207,107,.04))', borderColor: 'rgba(255,207,107,.30)' };
+  if (v.c.isPlayer) return { ...base, background: `linear-gradient(135deg, ${goldTint(13)}, ${goldTint(4)}), ${tv('glass', 'transparent')}`, borderColor: goldTint(30) };
   return base;
 }
 
 const Badge = () => (
-  <span style={{ fontSize: E(15), fontWeight: 750, letterSpacing: '.1em', textTransform: 'uppercase', color: '#1a1408', background: C.gold, borderRadius: 99, padding: `${E(3)} ${E(9)}`, flex: 'none' }}>Player</span>
+  <span style={{ fontSize: E(15), fontWeight: 750, letterSpacing: '.1em', textTransform: 'uppercase', color: C.onGold, background: C.gold, borderRadius: 99, padding: `${E(3)} ${E(9)}`, flex: 'none' }}>Player</span>
 );
 
 function Label({ v }: { v: ControllerView }) {
   if (!v.health.label) return null;
   const t = TONE[toneOf(v)];
-  return <span style={{ fontSize: E(19), fontWeight: 700, whiteSpace: 'nowrap', color: v.health.poweredOff ? '#c5cede' : t.text, flex: 'none' }}>{v.health.label}</span>;
+  return <span style={{ fontSize: E(19), fontWeight: 700, whiteSpace: 'nowrap', color: v.health.poweredOff ? tv('ink2', '#c5cede') : t.text, flex: 'none' }}>{v.health.label}</span>;
 }
 
 function lastHeard(v: ControllerView, env: Env): string {
@@ -416,7 +416,7 @@ export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: Controller
 
 function Metric({ icon, text, warn }: { icon: 'therm' | 'zap'; text: string; warn: boolean }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), color: warn ? '#ffd56b' : undefined }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), color: warn ? tv('warn-text', '#ffd56b') : undefined }}>
       <Icon name={icon} size={E(19)} style={{ opacity: warn ? 1 : 0.75 }} />{text}
     </span>
   );
@@ -426,7 +426,7 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
   const s = v.health.sensors;
   const up = v.reading.status?.uptimeTotalSeconds;
   const stat = (label: string, value: string, warn = false) => (
-    <span key={label} style={{ color: warn ? '#ffd56b' : undefined }}>
+    <span key={label} style={{ color: warn ? tv('warn-text', '#ffd56b') : undefined }}>
       <em style={{ fontStyle: 'normal', color: C.ink3, fontWeight: 550, marginRight: E(7) }}>{label}</em>{value}
     </span>
   );
@@ -515,7 +515,7 @@ export function Sheet({ v, m, env, landscape, power, onClose }: { v: ControllerV
   ];
   const names = readingNames(v.health.sensors.readings);
   const chips = v.health.offline ? [] : v.health.sensors.readings.map((r, i) => (
-    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), height: E(46), padding: `0 ${E(16)}`, borderRadius: E(14), background: 'rgba(255,255,255,.06)', fontSize: E(22), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap' }}>
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: E(6), height: E(46), padding: `0 ${E(16)}`, borderRadius: E(14), background: tv('fill2', 'rgba(255,255,255,.06)'), fontSize: E(22), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap' }}>
       <em style={{ fontStyle: 'normal', color: C.ink3, fontWeight: 550 }}>{names[i]}</em>
       {r.kind === 'power' ? `${r.value.toFixed(1)} V` : `${temperature(r.value, env.units)}°`}
     </span>
@@ -523,17 +523,17 @@ export function Sheet({ v, m, env, landscape, power, onClose }: { v: ControllerV
   const tone = TONE[toneOf(v)];
   const warnings = v.health.warnings.slice(0, 3).map((w, i) => (
     <div key={i} style={{ marginTop: i ? E(12) : 0, borderRadius: E(22), background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.35)', padding: `${E(20)} ${E(24)}`, display: 'flex', gap: E(16) }}>
-      <Icon name="warn" size={E(32)} color="#ffd56b" style={{ marginTop: E(2) }} />
+      <Icon name="warn" size={E(32)} color={tv('warn-text', '#ffd56b')} style={{ marginTop: E(2) }} />
       <div>
-        <div style={{ fontSize: E(20), fontWeight: 700, color: '#ffd56b', letterSpacing: '.06em', textTransform: 'uppercase' }}>Warning from the controller</div>
-        <div style={{ fontSize: E(25), marginTop: E(6), lineHeight: 1.35, color: '#fff4d6' }}>{w}</div>
+        <div style={{ fontSize: E(20), fontWeight: 700, color: tv('warn-text', '#ffd56b'), letterSpacing: '.06em', textTransform: 'uppercase' }}>Warning from the controller</div>
+        <div style={{ fontSize: E(25), marginTop: E(6), lineHeight: 1.35, color: tv('ink', '#fff4d6') }}>{w}</div>
       </div>
     </div>
   ));
   const factGrid = landscape ? (
     <div style={{ display: 'grid', gap: E(8) }}>
       {facts.map(([k, val]) => (
-        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: E(20), padding: `${E(14)} ${E(22)}`, borderRadius: E(16), background: 'rgba(255,255,255,.05)' }}>
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: E(20), padding: `${E(14)} ${E(22)}`, borderRadius: E(16), background: tv('fill2', 'rgba(255,255,255,.05)') }}>
           <span style={{ fontSize: E(19), color: C.ink3, fontWeight: 600 }}>{k}</span>
           <span style={{ fontSize: E(24), fontWeight: 650, textAlign: 'right', ...ellipsis }}>{val}</span>
         </div>
@@ -542,7 +542,7 @@ export function Sheet({ v, m, env, landscape, power, onClose }: { v: ControllerV
   ) : (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: E(14), marginTop: E(34) }}>
       {facts.map(([k, val]) => (
-        <div key={k} style={{ background: 'rgba(255,255,255,.05)', borderRadius: E(20), padding: `${E(18)} ${E(22)}`, minWidth: 0 }}>
+        <div key={k} style={{ background: tv('fill2', 'rgba(255,255,255,.05)'), borderRadius: E(20), padding: `${E(18)} ${E(22)}`, minWidth: 0 }}>
           <div style={{ fontSize: E(19), color: C.ink3, fontWeight: 600 }}>{k}</div>
           <div style={{ fontSize: E(28), fontWeight: 650, marginTop: E(6), ...clamp(2) }}>{val}</div>
         </div>
@@ -551,18 +551,18 @@ export function Sheet({ v, m, env, landscape, power, onClose }: { v: ControllerV
   );
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(4,5,12,.62)' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: tv('dim', 'rgba(4,5,12,.62)') }} />
       <div role="dialog" aria-label={v.c.name} style={{
         position: 'absolute', left: landscape ? '13%' : E(60), right: landscape ? '13%' : E(60), top: landscape ? (power ? '11.1%' : '17.5%') : '15.6%',
-        borderRadius: E(40), background: '#161a2b', border: `1px solid ${C.line2}`, boxShadow: `0 ${E(40)} ${E(120)} rgba(0,0,0,.6)`,
-        padding: `${E(40)} ${E(44)}`, color: '#f4f6ff',
+        borderRadius: E(40), background: tv('sheet', '#161a2b'), border: `1px solid ${C.line2}`, boxShadow: `0 ${E(40)} ${E(120)} rgba(0,0,0,.6)`,
+        padding: `${E(40)} ${E(44)}`, color: tv('ink', '#f4f6ff'),
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(18) }}>
           <span style={v.health.poweredOff
             ? { width: E(18), height: E(18), borderRadius: '50%', flex: 'none', boxSizing: 'border-box', border: `${E(4)} solid ${C.idle}` }
             : { width: E(18), height: E(18), borderRadius: '50%', background: tone.dot, flex: 'none' }} />
           <h4 style={{ fontSize: E(46), fontWeight: 760, letterSpacing: '-.02em', flex: 1, margin: 0, ...ellipsis }}>{v.c.name}</h4>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ width: E(76), height: E(76), borderRadius: '50%', background: 'rgba(255,255,255,.08)', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
+          <button type="button" aria-label="Close" onClick={onClose} style={{ width: E(76), height: E(76), borderRadius: '50%', background: C.fill, border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
             <Icon name="x" size={E(34)} />
           </button>
         </div>
