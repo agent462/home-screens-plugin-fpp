@@ -5,6 +5,7 @@ import { playerBaseUrl } from './lib/poll';
 import { controllersFrom, type Controller } from './lib/systems';
 import { proxyFetch, readConfig } from './config';
 import { PowerSettings } from './power-settings';
+import { RequestsSettings } from './requests-settings';
 
 // This section replaces the manifest's schema renderer, so it draws every
 // setting itself.
@@ -140,6 +141,8 @@ export function ConfigSection({ config, onChange }: PluginConfigSectionProps) {
       )}
 
       {check.state === 'ok' && check.controllers.length > 0 && <PowerSettings controllers={check.controllers} />}
+
+      <RequestsSettings playerBase={check.state === 'ok' ? playerBaseUrl(cfg.playerAddress) : ''} />
     </div>
   );
 }

@@ -71,9 +71,23 @@
         "type": "object",
         "title": "Controller outlets",
         "description": "Which Home Assistant outlet powers each controller. Set these in a Light Show module's settings, under Power."
+      },
+      "remoteFalcon": {
+        "type": "boolean",
+        "title": "Remote Falcon connected",
+        "description": "Turned on when you connect Remote Falcon in a Light Show module's settings."
       }
     }
   },
+
+  "secrets": [
+    {
+      "key": "rf_key",
+      "label": "Remote Falcon key",
+      "description": "Made for you when you connect Remote Falcon in a Light Show module's settings. There is nothing to type here.",
+      "required": false
+    }
+  ],
 
   "exports": {
     "component": "default",
@@ -82,6 +96,6 @@
 
   "dataRequirements": [],
   "prefetchUrl": null,
-  "permissions": ["network", "localNetwork"],
-  "allowedDomains": ["*", "itunes.apple.com"]
+  "permissions": ["network", "localNetwork", "secrets"],
+  "allowedDomains": ["*", "itunes.apple.com", "remotefalcon.com"]
 }

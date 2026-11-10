@@ -75,10 +75,11 @@ describe('Feed', () => {
     const remoteCalls = show.calls.slice(before).filter((c) => !c.url.includes('192.168.0.200'));
     expect(remoteCalls.length).toBeGreaterThanOrEqual(17);
     expect(remoteCalls.length).toBeLessThanOrEqual(19);
-    // Player while idle: every 15 s, cached by the hub for just under that.
+    // Player while idle: every 5 s, cached by the hub for just under that.
     const playerCalls = show.calls.slice(before).filter((c) => c.url.endsWith('192.168.0.200/api/fppd/status'));
-    expect(playerCalls.length).toBeLessThanOrEqual(5);
-    expect(playerCalls[0].ttl).toBe(13000);
+    expect(playerCalls.length).toBeGreaterThanOrEqual(11);
+    expect(playerCalls.length).toBeLessThanOrEqual(13);
+    expect(playerCalls[0].ttl).toBe(4250);
     off();
   });
 
@@ -150,5 +151,78 @@ describe('Feed', () => {
     expect(feed.getState().covers['Snowman Sia']).toBe('https://x/600x600bb.jpg');
     expect(store.get('fpp-cover:snowman sia')).toBe('https://x/600x600bb.jpg');
     off();
+  });
+
+  describe('request nights', () => {
+    const live = (playlistName: string, sequence: string) => ({
+      ...(ST['192.168.0.200'] as object), status_name: 'playing',
+      current_playlist: { playlist: playlistName, index: '8', count: '14' }, current_sequence: sequence,
+      seconds_played: '10', seconds_remaining: '200',
+      scheduler: { status: 'playing', currentPlaylist: { playlistName: '2026' } },
+    });
+
+    it('keeps the show playlist while a request playlist is slotted in', async () => {
+      const show = fakeShow();
+      show.setPlayer(live('2026', 'Youre a Mean One Mr Grinch.fseq'));
+      const feed = new Feed('http://192.168.0.200', show.fetcher, null, () => now);
+      const off = feed.subscribe(() => {});
+      await settle(5_000);
+      expect(feed.getState()).toMatchObject({ showName: '2026', playlistName: '2026', lastShowSequence: 'Youre a Mean One Mr Grinch.fseq' });
+
+      show.setPlayer(live('2026-RF', 'Christmas Tree Farm - Taylor Swift.fseq'));
+      await settle(5_000);
+      expect(feed.getState()).toMatchObject({ showName: '2026', playlistName: '2026', lastShowSequence: 'Youre a Mean One Mr Grinch.fseq' });
+      expect(show.calls.some((c) => c.url.includes('/api/playlist/2026-RF'))).toBe(false);
+      off();
+    });
+
+    it('catches a song change as it happens, with a fresh answer from the player and Remote Falcon', async () => {
+      const show = fakeShow();
+      const ending = { ...live('2026', 'Youre a Mean One Mr Grinch.fseq'), seconds_played: '256', seconds_remaining: '1' };
+      show.setPlayer(ending);
+      const asked: number[] = [];
+      const feed = new Feed('http://192.168.0.200', show.fetcher, null, () => now, (ttl) => { asked.push(ttl); return Promise.resolve({}); });
+      const off = feed.subscribe(() => {});
+      feed.setRequests(true);
+      await settle(1_000);
+      const before = show.calls.length;
+      const requestsBefore = asked.length;
+
+      // The song ends: the next check lands about 1.3 s after the last one, uncached.
+      show.setPlayer(live('2026-RF', 'Christmas Tree Farm - Taylor Swift.fseq'));
+      await settle(1_500);
+      const status = show.calls.slice(before).filter((c) => c.url.endsWith('192.168.0.200/api/fppd/status'));
+      expect(status.length).toBeGreaterThanOrEqual(1);
+      expect(status[0].ttl).toBe(0);
+      expect(feed.getState().player.status?.current_sequence).toBe('Christmas Tree Farm - Taylor Swift.fseq');
+      await settle(1_000);
+      // Remote Falcon is asked again straight away, past the hub's cache.
+      expect(asked.slice(requestsBefore)).toContain(0);
+      off();
+    });
+
+    it('asks Remote Falcon only when connected and the show is playing, every five seconds', async () => {
+      const show = fakeShow();
+      let asked = 0;
+      const requests = () => { asked++; return Promise.resolve({ preferences: { viewerControlEnabled: true } }); };
+      const feed = new Feed('http://192.168.0.200', show.fetcher, null, () => now, requests);
+      const off = feed.subscribe(() => {});
+      feed.setRequests(true);
+      await settle(15_000);
+      expect(asked).toBe(0); // connected, but nothing is playing
+
+      show.setPlayer(live('2026', 'Youre a Mean One Mr Grinch.fseq'));
+      await settle(40_000);
+      expect(asked).toBeGreaterThanOrEqual(6);
+      expect(asked).toBeLessThanOrEqual(9);
+      expect(feed.getState().requests?.show.preferences?.viewerControlEnabled).toBe(true);
+
+      feed.setRequests(false);
+      const before = asked;
+      await settle(25_000);
+      expect(asked).toBe(before);
+      expect(feed.getState().requests).toBeNull();
+      off();
+    });
   });
 });

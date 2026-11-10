@@ -4,7 +4,7 @@ import { clockText, dayText } from '../lib/format';
 import { calendarDaysBetween } from '../lib/format';
 import { untilText } from '../lib/schedule';
 import { Bars, Icon, type IconName } from './icons';
-import { Backdrop, Cover, LiveProgress, LiveSegments, Mosaic, Queue, Segments, type Env } from './parts';
+import { Backdrop, Cover, LiveProgress, LiveSegments, Mosaic, nextList, playingTag, Queue, Segments, Tag, voteLeader, votesText, type Env } from './parts';
 import { C, clamp, E, ellipsis, kicker, outline } from './tokens';
 
 /** "Friday,\nNovember 27", or "Tonight" / "Tomorrow". */
@@ -43,7 +43,10 @@ export function HeroPlaying({ m, env, compact }: { m: ShowModel; env: Env; compa
   const cur = m.current;
   const paused = m.phase.kind === 'playing' && m.phase.paused;
   const art = compact ? 300 : 356;
-  const next = m.upNext[0];
+  const leader = voteLeader(m);
+  const next = leader ?? m.upNext[0];
+  const tag = playingTag(m);
+  const list = nextList(m, 2);
   return (
     <HeroCard cover={cur?.cover} compact={compact} grow={compact}>
       <Top gap={compact ? 30 : 36}>
@@ -51,6 +54,7 @@ export function HeroPlaying({ m, env, compact }: { m: ShowModel; env: Env; compa
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ ...kicker, fontSize: E(compact ? 19 : 21) }}>
             {paused ? <><Icon name="pause" size={E(22)} />Paused</> : <><Bars color={C.gold} height={E(20)} />Now playing</>}
+            {tag && <Tag text={tag} />}
           </div>
           <div style={{ fontSize: E(compact ? 50 : 60), fontWeight: 760, letterSpacing: '-.025em', lineHeight: 1.06, marginTop: E(compact ? 14 : 18), ...clamp(2) }}>
             {cur?.names.title ?? 'Playing'}
@@ -61,17 +65,22 @@ export function HeroPlaying({ m, env, compact }: { m: ShowModel; env: Env; compa
           {!compact && next && (
             <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: E(18), padding: `${E(16)} ${E(18)}`, borderRadius: E(22), background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.09)' }}>
               <Cover url={next.cover} size={E(64)} radius={E(12)} shadow={false} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: E(18), fontWeight: 700, letterSpacing: '.12em', color: 'rgba(232,238,255,.42)', textTransform: 'uppercase' }}>Up next</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: E(18), fontWeight: 700, letterSpacing: '.12em', color: 'rgba(232,238,255,.42)', textTransform: 'uppercase', ...ellipsis }}>
+                  {leader ? 'Leading the vote'
+                    : next.request ? <>Up next · <span style={{ color: C.ice }}>request</span></>
+                    : m.requests.playing ? 'Up next · back to the show' : 'Up next'}
+                </div>
                 <div style={{ fontSize: E(25), fontWeight: 600, marginTop: E(4), ...ellipsis }}>{next.names.title}</div>
               </div>
+              {leader && <span style={{ flex: 'none', fontSize: E(21), fontWeight: 650, color: C.gold, paddingRight: E(6), whiteSpace: 'nowrap' }}>{votesText(leader)}</span>}
             </div>
           )}
         </div>
       </Top>
       <LiveProgress m={m} font={compact ? 22 : 24} />
       <LiveSegments m={m} font={compact ? 19 : 21} />
-      {compact && <div style={{ marginTop: 'auto' }}><Queue label="Up next" songs={m.upNext.slice(0, 2)} art={60} title={24} sub={19} /></div>}
+      {compact && <div style={{ marginTop: 'auto' }}><Queue label={list.label} right={list.right} songs={list.songs} art={60} title={24} sub={19} /></div>}
     </HeroCard>
   );
 }

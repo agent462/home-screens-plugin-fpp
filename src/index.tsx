@@ -2,7 +2,7 @@ import React from 'react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { Feed, feedFor, type FeedState } from './data/feed';
-import { proxyFetch, readConfig, savedLinks, sdk } from './config';
+import { fetchRequests, proxyFetch, readConfig, requestsConnected, savedLinks, sdk } from './config';
 import { buildModel, wantedCoverNames, wantedMedia } from './data/model';
 import { PowerStore, powerStore } from './data/power';
 import { haApi } from './lib/ha';
@@ -26,7 +26,7 @@ function makeFeed(base: string): Feed {
       return hit ? hit.data : undefined;
     },
     set: (key, value, ttl) => sdk()?.displayCache?.set(key, value, ttl),
-  });
+  }, undefined, fetchRequests);
 }
 
 const storage = () => { try { return window.localStorage; } catch { return null; } };
@@ -80,6 +80,10 @@ export default function LightShow({ config, style }: PluginComponentProps) {
     }
     return out;
   }, [powerState, linksKey]);
+
+  // Remote Falcon: connected in the editor, noticed here on the slow tick.
+  const requestsOn = requestsConnected();
+  React.useEffect(() => { feed?.setRequests(requestsOn); }, [feed, requestsOn]);
 
   const hiddenKey = cfg.hiddenControllers.join('|');
   const model = React.useMemo(() => (state ? buildModel(state, {

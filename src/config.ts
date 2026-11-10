@@ -1,4 +1,5 @@
-import type { Fetcher } from './data/feed';
+import type { Fetcher, RequestsFetcher } from './data/feed';
+import { RF_SECRET, RF_SHOW_URL } from './lib/remote-falcon';
 import type { SongNameSource } from './lib/songs';
 import type { ViewName } from './ui/views';
 import { readLinks, type Links } from './lib/power';
@@ -35,6 +36,30 @@ export const OUTLETS_SETTING = 'outlets';
 export function savedLinks(): Links {
   return readLinks(sdk()?.getPluginSettings?.(PLUGIN_ID)?.[OUTLETS_SETTING]);
 }
+
+/** Plugin setting that says Remote Falcon is connected. The key itself is a
+ *  hub secret, which the wall can use but never read. */
+export const REQUESTS_SETTING = 'remoteFalcon';
+
+export const requestsConnected = (): boolean => sdk()?.getPluginSettings?.(PLUGIN_ID)?.[REQUESTS_SETTING] === true;
+
+/** A Remote Falcon call that came back with an error status. */
+export class RequestsError extends Error {
+  constructor(public status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
+/** Remote Falcon's show details. The hub adds the saved key on the way out. */
+export const fetchRequests: RequestsFetcher = async (cacheTtlMs) => {
+  const s = sdk();
+  if (!s?.pluginFetch) throw new Error('The plugin SDK is not ready');
+  const res = await s.pluginFetch(PLUGIN_ID, {
+    url: RF_SHOW_URL, cacheTtlMs, secretInjections: { header: { Authorization: `Bearer {{${RF_SECRET}}}` } },
+  });
+  if (!res.ok) throw new RequestsError(res.status);
+  return res.json();
+};
 
 /** JSON through the hub proxy, which holds the request to the show network. */
 export const proxyFetch: Fetcher = async (url, cacheTtlMs) => {

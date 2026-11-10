@@ -5,7 +5,7 @@ import { Hero, HeroMessage, nextCount, nextDayWords } from './hero';
 import { useNow } from './hooks';
 import { Bars, BrandMark, Icon } from './icons';
 import {
-  Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, playlistWords, LiveSegments, Mosaic, Pill, Queue, Segments, showPill, StatTiles, type Env,
+  Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Env,
 } from './parts';
 import { C, clamp, E, ellipsis, kicker, outline, tnum } from './tokens';
 
@@ -132,9 +132,10 @@ const chip: React.CSSProperties = {
 function PlayerMeta({ m, big }: { m: ShowModel; big: number }) {
   const cur = m.current;
   const paused = m.phase.kind === 'playing' && m.phase.paused;
+  const tag = playingTag(m);
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={kicker}>{paused ? <><Icon name="pause" size={E(22)} />Paused</> : <><Bars color={C.gold} height={E(20)} />Now playing</>}</div>
+      <div style={kicker}>{paused ? <><Icon name="pause" size={E(22)} />Paused</> : <><Bars color={C.gold} height={E(20)} />Now playing</>}{tag && <Tag text={tag} />}</div>
       <div style={{ fontSize: E(big), fontWeight: 760, letterSpacing: '-.025em', lineHeight: 1.06, marginTop: E(12), ...clamp(2) }}>{cur?.names.title ?? 'Playing'}</div>
       {cur?.names.artist && <div style={{ fontSize: E(big > 68 ? 38 : 34), opacity: 0.88, marginTop: E(14), fontWeight: 550, ...ellipsis }}>{cur.names.artist}</div>}
       {cur?.names.album && <div style={{ fontSize: E(26), color: 'rgba(232,238,255,.42)', marginTop: E(8), ...ellipsis }}>{cur.names.album}</div>}
@@ -181,6 +182,7 @@ export function PlayerView({ m, env, o }: ViewProps) {
     );
   }
   const cur = m.current;
+  const list = nextList(m, o === 'landscape' ? 2 : 3);
   if (o === 'landscape') {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: `${E(880)} minmax(0,1fr)`, columnGap: E(70), padding: `${E(76)} ${E(66)} ${E(76)} ${E(76)}`, height: '100%', boxSizing: 'border-box', color: '#f4f6ff' }}>
@@ -190,7 +192,7 @@ export function PlayerView({ m, env, o }: ViewProps) {
           <div style={{ marginTop: E(34) }}><PlayerMeta m={m} big={64} /></div>
           <div style={{ marginTop: E(34) }}><LiveProgress m={m} /></div>
           <div style={{ marginTop: E(22) }}><LiveSegments m={m} /></div>
-          <div style={{ marginTop: E(30) }}><Queue label="Up next" songs={m.upNext.slice(0, 2)} /></div>
+          <div style={{ marginTop: E(30) }}><Queue label={list.label} right={list.right} songs={list.songs} /></div>
           <PlayerFoot m={m} />
         </div>
       </div>
@@ -203,7 +205,7 @@ export function PlayerView({ m, env, o }: ViewProps) {
       <div style={{ marginTop: E(52) }}><PlayerMeta m={m} big={72} /></div>
       <div style={{ marginTop: E(40) }}><LiveProgress m={m} /></div>
       <div style={{ marginTop: E(26) }}><LiveSegments m={m} /></div>
-      <div style={{ marginTop: E(40) }}><Queue label="Up next" songs={m.upNext} /></div>
+      <div style={{ marginTop: E(40) }}><Queue label={list.label} right={list.right} songs={list.songs} /></div>
       <PlayerFoot m={m} />
     </div>
   );
@@ -262,7 +264,7 @@ export function StripView({ m, env }: ViewProps) {
     const cur = m.current;
     return wrap(<>
       <Cover url={cur?.cover ?? null} size={E(164)} radius={E(22)} />
-      {info(m.phase.paused ? <><Icon name="pause" size={E(18)} />Paused</> : <><Bars color={C.gold} height={E(16)} />Now playing</>,
+      {info(<>{m.phase.paused ? <><Icon name="pause" size={E(18)} />Paused</> : <><Bars color={C.gold} height={E(16)} />Now playing</>}{playingTag(m) && <Tag text={playingTag(m)!} small />}</>,
         cur?.names.title ?? 'Playing', <span style={{ opacity: 0.88 }}>{cur?.names.artist}</span>,
         <StripBar m={m} />)}
       {side(count, off ? listNames(s.offlineNames) + (off === 1 ? ' offline' : ' are offline') : 'Controllers online', off ? 'bad' : 'ok', warn,
@@ -302,13 +304,18 @@ function StripBar({ m }: { m: ShowModel }) {
   const elapsed = liveElapsed(m, now);
   const pct = m.duration ? Math.min(100, (elapsed / m.duration) * 100) : 0;
   const cur = m.current;
+  // The middle of the time line: where the show is, and who is waiting.
+  const leader = voteLeader(m);
+  const waiting = m.requests.waiting ? `${m.requests.waiting} ${m.requests.waiting === 1 ? 'request' : 'requests'} waiting` : '';
+  const middle = leader ? `Leading: ${leader.names.title}`
+    : [cur && cur.index >= 0 ? `Song ${cur.index + 1} of ${m.songs.length}` : '', waiting].filter(Boolean).join(' · ');
   return (
     <>
       <div style={{ height: E(9), borderRadius: 99, background: 'rgba(255,255,255,.16)', overflow: 'hidden', marginTop: E(18) }}>
         <i style={{ display: 'block', height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#fff2cf,#fff)' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: E(19), color: 'rgba(232,238,255,.66)', marginTop: E(8), fontWeight: 550, ...tnum }}>
-        <span>{fmt(elapsed)}</span>{cur && cur.index >= 0 && <span>Song {cur.index + 1} of {m.songs.length}</span>}<span>-{fmt(Math.max(0, m.duration - elapsed))}</span>
+        <span>{fmt(elapsed)}</span>{middle && <span style={ellipsis}>{middle}</span>}<span>-{fmt(Math.max(0, m.duration - elapsed))}</span>
       </div>
     </>
   );

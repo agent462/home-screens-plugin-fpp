@@ -8,10 +8,16 @@
  * &garage=off starts Garage with its outlet off, &garage=lost with the outlet
  * on but the controller dark; &ha=down|none; &panel=1 shows the settings
  * panel instead of the wall (&links=none for a first visit).
+ * Request nights (plan 268): &rf=request|between|quiet|vote puts Remote
+ * Falcon in that moment (a request playing with three waiting, a show song
+ * with one waiting, nobody waiting, a voting night); &rf=alone plays a
+ * request with Remote Falcon not connected; &rfpanel=new|on|bad shows that
+ * part of the settings. &at=<ISO time> sets the clock without Playwright.
  * Playwright installs the clock (opening night, or Nov 9 for "wait") and runs
  * it forward so the round robin, misses and offline labels happen for real.
  * Not part of the shipped bundle.
  */
+import './clock';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import LightShow, { ConfigSection } from '../src/index';
@@ -23,6 +29,7 @@ import statuses from '../test/fixtures/statuses.json';
 import schedule from '../test/fixtures/schedule.json';
 import playlist from '../test/fixtures/playlist-2026.json';
 import tags from '../test/fixtures/song-tags.json';
+import rfShow from '../test/fixtures/rf-show.json';
 
 const q = new URLSearchParams(location.search);
 const view = q.get('view') ?? 'show';
@@ -45,6 +52,7 @@ if (garageMode === 'off') plugs.get(GARAGE_PLUG)!.state = 'off';
 let garageBackAt = 0;
 const idOf = (host: string) => controllersFrom((systems as { systems: FppSystem[] }).systems).find((c) => c.hostname === host)?.id ?? host;
 const fppSettings: Record<string, unknown> = {
+  remoteFalcon: ['request', 'between', 'quiet', 'vote'].includes(q.get('rf') ?? '') || q.get('rfpanel') === 'on',
   outlets: !withPower || q.get('links') === 'none' ? {} : {
     [idOf('player')]: 'switch.show_player_plug',
     [idOf('arches-left')]: 'switch.arches_strip_socket_1',
@@ -81,22 +89,69 @@ function homeAssistant({ url, payload }: { url: string; payload?: string }) {
 }
 const at = (iso: string) => Date.parse(iso) / 1000;
 
+// ── A fake Remote Falcon (the real song list, made-up requests) ──
+const rf = q.get('rf') ?? '';
+const rfPanel = q.get('rfpanel') ?? '';
+const REQUEST_PLAYLIST = '2026-RF';
+const rfSeq = (name: string) => rfShow.sequences.find((s) => s.name === name)!;
+const TREE = 'Christmas Tree Farm - Taylor Swift';
+const WAITING = ['Carol Of The Bells - Lindsey Sterling', 'Let It Go Frozen_Soundtrack', 'Grandma Got Run over by a Reindeer'];
+function remoteFalcon(): Record<string, unknown> {
+  const voting = rf === 'vote';
+  const waiting = rf === 'request' ? WAITING : rf === 'between' ? WAITING.slice(0, 1) : [];
+  return {
+    ...rfShow,
+    preferences: { ...rfShow.preferences, viewerControlMode: voting ? 'VOTING' : 'JUKEBOX' },
+    requests: waiting.map((name, i) => ({ sequence: rfSeq(name), position: i + 1 })),
+    votes: voting ? [
+      { sequence: rfSeq('Tsunami - DVBBS & Borgeous'), votes: 4 },
+      { sequence: rfSeq('The Fate of Ophelia - Taylor Swift'), votes: 12 },
+      { sequence: rfSeq('Let It Go Frozen_Soundtrack'), votes: 7 },
+    ] : [],
+    playingNextFromSchedule: 'Youre a Mean One Mr Grinch',
+  };
+}
+/** The player's status while Remote Falcon's playlist is slotted in. */
+function requestStatus(live: Record<string, unknown>): Record<string, unknown> {
+  const song = rf === 'vote' ? { seq: 'ordinary - alex warren', media: 'Ordinary.mp3', len: 186, at: 61 } : { seq: TREE, media: 'Christmas Tree Farm.mp3', len: 228, at: 94 };
+  return {
+    ...live,
+    current_playlist: { playlist: REQUEST_PLAYLIST, index: '13', count: '53' },
+    current_sequence: `${song.seq}.fseq`, current_song: song.media,
+    seconds_played: String(song.at), seconds_remaining: String(song.len - song.at),
+  };
+}
+
 function playerStatus(): Record<string, unknown> | null {
   const idle = ST['192.168.0.200'];
   if (scenario === 'down') return null;
   if (scenario === 'live') {
-    return {
-      ...idle, status_name: 'playing', status: 1,
-      current_playlist: { playlist: '2026', index: '8', count: '14' },
-      current_sequence: 'Youre a Mean One Mr Grinch.fseq', current_song: "01 - You're a Mean One, Mr. Grinch.mp3",
-      seconds_played: '94', seconds_remaining: String(Math.round(257.525 - 94)),
-      scheduler: { status: 'playing', currentPlaylist: { playlistName: '2026', scheduledEndTime: at('2026-11-27T23:00:00-06:00') }, nextPlaylist: { playlistName: '2026', scheduledStartTime: at('2026-11-28T17:00:00-06:00') } },
-    };
+    const live = liveStatus(idle);
+    // The wall first sees the show on song 7, then the request slots in.
+    if (rf === 'request' || rf === 'vote' || rf === 'alone') {
+      return Date.now() - t0 < 4000
+        ? { ...live, current_playlist: { playlist: '2026', index: '7', count: '14' }, current_sequence: 'We Three Kings - Tommee Profitt & We The Kingdom.fseq', current_song: '02 - We Three Kings.mp3', seconds_played: '248', seconds_remaining: '2' }
+        : requestStatus(live);
+    }
+    return live;
   }
   if (scenario === 'done') {
     return { ...idle, scheduler: { status: 'idle', nextPlaylist: { playlistName: '2026', scheduledStartTime: at('2026-11-28T17:00:00-06:00') } } };
   }
   return idle;
+}
+
+function liveStatus(idle: Record<string, unknown>): Record<string, unknown> {
+  // Opening night, or the first request night when Remote Falcon is in play.
+  const day = rf ? '2026-11-30' : '2026-11-27';
+  const next = rf ? '2026-12-01' : '2026-11-28';
+  return {
+    ...idle, status_name: 'playing', status: 1,
+    current_playlist: { playlist: '2026', index: '8', count: '14' },
+    current_sequence: 'Youre a Mean One Mr Grinch.fseq', current_song: "01 - You're a Mean One, Mr. Grinch.mp3",
+    seconds_played: '94', seconds_remaining: String(Math.round(257.525 - 94)),
+    scheduler: { status: 'playing', currentPlaylist: { playlistName: '2026', scheduledEndTime: at(`${day}T23:00:00-06:00`) }, nextPlaylist: { playlistName: '2026', scheduledStartTime: at(`${next}T17:00:00-06:00`) } },
+  };
 }
 
 function remoteStatus(ip: string): Record<string, unknown> | null {
@@ -119,6 +174,10 @@ const fail = () => Promise.resolve(new Response('', { status: 502 }));
 function pluginFetch(id: string, { url, payload }: { url: string; payload?: string }) {
   if (id === 'home-assistant') return homeAssistant({ url, payload });
   const u = new URL(url);
+  if (u.hostname === 'remotefalcon.com') {
+    if (rfPanel === 'bad' && !fppSettings.remoteFalcon) return Promise.resolve(new Response('', { status: 401 }));
+    return json(remoteFalcon());
+  }
   if (u.hostname === 'itunes.apple.com') {
     const term = u.searchParams.get('term') ?? '';
     // Apple's answer for each song, as recorded from the real search.
@@ -132,6 +191,7 @@ function pluginFetch(id: string, { url, payload }: { url: string; payload?: stri
     if (u.pathname === '/api/fppd/multiSyncSystems') return json(systems);
     if (u.pathname === '/api/fppd/schedule') return json(schedule);
     if (u.pathname.startsWith('/api/playlist/')) return json(playlist);
+    if (u.pathname === '/api/plugin/remote-falcon/settings/remotePlaylist') return json({ status: 'OK', remotePlaylist: REQUEST_PLAYLIST });
     if (u.pathname.startsWith('/api/media/')) {
       const file = decodeURIComponent(u.pathname.slice('/api/media/'.length).replace(/\/meta$/, ''));
       const t = tags.find((x) => x.media === file);
@@ -168,7 +228,13 @@ root.style.height = '100%';
 
 const style = { fontSize: 16, fontFamily: 'inter', textColor: '#f4f6ff', backgroundColor: 'rgba(7, 9, 20, 0.5)', borderRadius: 0, padding: 24, opacity: 1, backdropBlur: 26 };
 const config = { playerAddress: '192.168.0.200', view, songNames: 'tags', covers: true, hiddenControllers: [] };
-if (q.get('panel') === '1') {
+// The hub's secret store, for the settings panel's Connect and Disconnect.
+const realFetch = window.fetch.bind(window);
+window.fetch = (input, init) => (String(input).startsWith('/api/plugins/secrets/')
+  ? Promise.resolve(new Response('{"ok":true}', { status: 200 }))
+  : realFetch(input, init));
+
+if (q.get('panel') === '1' || rfPanel) {
   // The editor's settings panel, at its real width.
   wall.style.cssText = 'width:300px;padding:16px;background:#0e0e0f;border:1px solid #262626;border-radius:10px;font:13px/1.4 Inter,system-ui;color:#e5e5e5;margin:20px';
   createRoot(root).render(<ConfigSection config={config} onChange={() => {}} moduleId="m" screenId="s" />);

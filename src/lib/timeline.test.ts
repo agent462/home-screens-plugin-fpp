@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import playlist from '../../test/fixtures/playlist-2026.json';
 import type { FppPlaylist } from './fpp-types';
 import { currentSongIndex, playlistSongs, roundPosition } from './timeline';
-import { cacheTtlFor, hostBaseUrl, playerBaseUrl, playerEveryMs, remoteRoundMs } from './poll';
+import { cacheTtlFor, hostBaseUrl, playerBaseUrl, playerEveryMs, remoteRoundMs, playerNextMs } from './poll';
 import { calendarDaysBetween, mmss, spanText, temperature, uptimeText, windowText } from './format';
 
 const songs = playlistSongs(playlist as FppPlaylist);
@@ -31,11 +31,25 @@ describe('playlist timeline', () => {
 describe('polling pace', () => {
   it('is quick only while a song plays', () => {
     expect(playerEveryMs({ playing: true, paused: false, reachable: true, asleep: false })).toBe(2000);
-    expect(playerEveryMs({ playing: false, paused: false, reachable: true, asleep: false })).toBe(15000);
+    expect(playerEveryMs({ playing: false, paused: false, reachable: true, asleep: false })).toBe(5000);
     expect(playerEveryMs({ playing: true, paused: false, reachable: false, asleep: false })).toBe(30000);
     expect(playerEveryMs({ playing: true, paused: false, reachable: true, asleep: true })).toBe(60000);
     expect(remoteRoundMs(true, false)).toBe(30000);
     expect(remoteRoundMs(false, false)).toBe(60000);
+  });
+
+  it('asks right as a song ends or a show starts, and wants a fresh answer then', () => {
+    const now = Date.parse('2026-11-30T19:42:00-06:00');
+    const playing = (left: string) => ({ status_name: 'playing', seconds_remaining: left });
+    expect(playerNextMs(2000, playing('134'), now)).toEqual({ inMs: 2000, fresh: false });
+    expect(playerNextMs(2000, playing('1'), now)).toEqual({ inMs: 1300, fresh: true });
+    expect(playerNextMs(2000, playing('0'), now)).toEqual({ inMs: 500, fresh: true });
+    const idle = (startInMs: number) => ({ status_name: 'idle', scheduler: { nextPlaylist: { scheduledStartTime: (now + startInMs) / 1000 } } });
+    expect(playerNextMs(5000, idle(3_600_000), now)).toEqual({ inMs: 5000, fresh: false });
+    expect(playerNextMs(5000, idle(3000), now)).toEqual({ inMs: 3300, fresh: true });
+    expect(playerNextMs(5000, idle(-4000), now)).toEqual({ inMs: 1000, fresh: true });
+    expect(playerNextMs(5000, idle(-60_000), now)).toEqual({ inMs: 5000, fresh: false });
+    expect(playerNextMs(30000, null, now)).toEqual({ inMs: 30000, fresh: false });
   });
 
   it('caches each answer for just under its interval', () => {

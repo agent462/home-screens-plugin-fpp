@@ -148,7 +148,49 @@ export function LiveProgress({ m, barH, font }: { m: ShowModel; barH?: number; f
 
 export function LiveSegments({ m, font }: { m: ShowModel; font?: number }) {
   const now = useNow(1000, m.phase.kind === 'playing' && !m.phase.paused);
+  // While a request plays the bar waits at the show's next song.
+  if (m.requests.playing) return <Segments m={m} index={m.showIndex} elapsed={0} hold font={font} />;
   return <Segments m={m} index={m.current?.index ?? -1} elapsed={liveElapsed(m, now)} font={font} />;
+}
+
+// ── Request and voting nights ───────────────────────────────────────────────
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** The tag beside "Now playing" for a song that is not the show's own. */
+export function playingTag(m: ShowModel): string | null {
+  if (!m.requests.playing) return null;
+  return m.requests.connected && m.requests.mode === 'voting' ? 'Voted in' : 'Request';
+}
+
+/** "Requests open · 3 waiting", or null when Remote Falcon is not saying. */
+export function requestsNote(m: ShowModel): string | null {
+  const r = m.requests;
+  if (!r.connected || !r.open) return null;
+  if (r.mode === 'voting') return r.totalVotes ? `Voting open · ${plural(r.totalVotes, 'vote')}` : 'Voting open';
+  return r.waiting ? `Requests open · ${r.waiting} waiting` : 'Requests open';
+}
+
+/** The song ahead in the vote, when there is one. */
+export const voteLeader = (m: ShowModel): SongView | null =>
+  (m.requests.connected && m.requests.mode === 'voting' ? m.requests.standings[0] ?? null : null);
+
+/** What the "Up next" list shows: the vote on a voting night, otherwise the
+ *  real order (waiting requests, then the show's songs). */
+export function nextList(m: ShowModel, rows: number): { label: string; right?: string; songs: SongView[] } {
+  if (voteLeader(m)) return { label: 'The vote so far', right: plural(m.requests.totalVotes, 'vote'), songs: m.requests.standings.slice(0, rows) };
+  return { label: 'Up next', right: m.requests.waiting ? `${plural(m.requests.waiting, 'request')} waiting` : undefined, songs: m.upNext.slice(0, rows) };
+}
+
+export const votesText = (s: SongView) => plural(s.votes ?? 0, 'vote');
+
+export function Tag({ text, small }: { text: string; small?: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', height: E(small ? 24 : 30), padding: `0 ${E(small ? 10 : 13)}`, borderRadius: 999, marginLeft: E(6),
+      fontSize: E(small ? 13 : 16), fontWeight: 780, letterSpacing: '.1em', textTransform: 'uppercase', color: '#06202e', background: C.ice, whiteSpace: 'nowrap', flex: 'none',
+    }}>{text}</span>
+  );
 }
 
 
@@ -171,20 +213,23 @@ export function Progress({ elapsed, duration, barH = 12, font = 24 }: { elapsed:
 export const playlistWords = (name: string) => (/playlist/i.test(name) ? name : `${name} playlist`);
 
 /** The playlist as segments, each sized to its song. */
-export function Segments({ m, index, elapsed, upcoming, font = 21 }: { m: ShowModel; index: number; elapsed: number; upcoming?: boolean; font?: number }) {
+export function Segments({ m, index, elapsed, upcoming, hold, font = 21 }: { m: ShowModel; index: number; elapsed: number; upcoming?: boolean; hold?: boolean; font?: number }) {
   if (m.songs.length === 0) return null;
   const total = m.songs.reduce((t, s) => t + s.duration, 0);
   const done = m.songs.slice(0, Math.max(0, index)).reduce((t, s) => t + s.duration, 0) + (index >= 0 ? elapsed : 0);
   const left = Math.max(0, Math.round((total - done) / 60));
+  const note = upcoming ? null : requestsNote(m);
+  const strong: React.CSSProperties = { color: C.ink2, fontWeight: 650 };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: E(12) }}>
       <div style={{ display: 'flex', gap: E(5), height: E(16) }}>
         {m.songs.map((s, i) => {
-          const state = upcoming ? 'up' : i < index ? 'done' : i === index ? 'cur' : 'up';
+          const state = upcoming ? 'up' : i < index ? 'done' : i === index ? (hold ? 'hold' : 'cur') : 'up';
           return (
             <span key={i} style={{
               flex: Math.max(1, Math.round(s.duration)), borderRadius: E(5), position: 'relative', overflow: 'hidden',
-              background: state === 'done' ? 'rgba(255,255,255,.52)' : state === 'cur' ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.14)',
+              background: state === 'done' ? 'rgba(255,255,255,.52)' : state === 'hold' ? 'rgba(143,216,255,.18)' : state === 'cur' ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.14)',
+              boxShadow: state === 'hold' ? `inset 0 0 0 ${E(2)} ${C.ice}` : undefined,
             }}>
               {state === 'cur' && <b style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, (elapsed / Math.max(1, s.duration)) * 100)}%`, background: C.gold }} />}
             </span>
@@ -193,29 +238,50 @@ export function Segments({ m, index, elapsed, upcoming, font = 21 }: { m: ShowMo
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: E(16), fontSize: E(font), color: C.ink3, fontWeight: 550, ...tnum }}>
         <span style={ellipsis}>
-          {upcoming || index < 0
-            ? <><b style={{ color: C.ink2, fontWeight: 650 }}>{m.playlistName ? playlistWords(m.playlistName) : 'Playlist'}</b> · {m.songs.length} songs</>
-            : <><b style={{ color: C.ink2, fontWeight: 650 }}>Song {index + 1} of {m.songs.length}</b>{m.playlistName ? ` · ${playlistWords(m.playlistName)}` : ''}</>}
+          {hold
+            ? <><b style={strong}>{playingTag(m) === 'Voted in' ? 'Vote winner playing' : 'Request playing'}</b>{index >= 0 ? (font < 21 && note ? ` · then song ${index + 1} of ${m.songs.length}` : ` · the show picks up at song ${index + 1} of ${m.songs.length}`) : ''}</>
+            : upcoming || index < 0
+              ? <><b style={strong}>{m.playlistName ? playlistWords(m.playlistName) : 'Playlist'}</b> · {m.songs.length} songs</>
+              : <><b style={strong}>Song {index + 1} of {m.songs.length}</b>{m.playlistName ? ` · ${playlistWords(m.playlistName)}` : ''}</>}
         </span>
-        <span style={{ flex: 'none' }}>{upcoming || index < 0 ? `${Math.round(total / 60)} min` : `${left} min until it starts over`}</span>
+        {note
+          ? (
+            <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: E(10), color: '#bfe8ff', fontWeight: 600 }}>
+              <i style={{ width: E(10), height: E(10), borderRadius: '50%', background: C.ice, boxShadow: `0 0 0 ${E(5)} rgba(143,216,255,.16)` }} />{note}
+            </span>
+          )
+          // Requests slot in between songs, so "until it starts over" would not hold.
+          : !hold && <span style={{ flex: 'none' }}>{upcoming || index < 0 ? `${Math.round(total / 60)} min` : `${left} min until it starts over`}</span>}
       </div>
     </div>
   );
 }
 
-export function Queue({ label, songs, art = 72, title = 28, sub = 21 }: { label: string; songs: SongView[]; art?: number; title?: number; sub?: number }) {
+export function Queue({ label, right, songs, art = 72, title = 28, sub = 21 }: { label: string; right?: string; songs: SongView[]; art?: number; title?: number; sub?: number }) {
   if (songs.length === 0) return null;
+  const compact = art < 72;
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={{ fontSize: E(20), fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: C.ink3, marginBottom: E(8) }}>{label}</div>
-      {songs.map((s) => (
-        <div key={`${s.index}-${s.song.sequence}`} style={{ display: 'flex', alignItems: 'center', gap: E(20), padding: `${E(12)} 0`, borderTop: `1px solid ${C.line}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: E(16), marginBottom: E(8) }}>
+        <span style={{ fontSize: E(compact ? 17 : 20), fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: C.ink3 }}>{label}</span>
+        {right && <span style={{ fontSize: E(compact ? 18 : 21), fontWeight: 600, color: '#bfe8ff', ...tnum }}>{right}</span>}
+      </div>
+      {songs.map((s, i) => (
+        <div key={`${i}-${s.index}-${s.song.sequence}`} style={{ display: 'flex', alignItems: 'center', gap: E(20), padding: `${E(12)} 0`, borderTop: `1px solid ${C.line}` }}>
           <Cover url={s.cover} size={E(art)} radius={E(14)} shadow={false} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: E(title), fontWeight: 620, ...ellipsis }}>{s.names.title}</div>
             {s.names.artist && <div style={{ fontSize: E(sub), color: C.ink3, marginTop: E(3), ...ellipsis }}>{s.names.artist}</div>}
           </div>
-          <span style={{ fontSize: E(23), color: C.ink3, fontWeight: 550, ...tnum }}>{mmss(s.song.duration)}</span>
+          {s.request && (
+            <span style={{
+              fontSize: E(compact ? 14 : 16), fontWeight: 750, letterSpacing: '.1em', textTransform: 'uppercase', color: C.ice, flex: 'none', whiteSpace: 'nowrap',
+              padding: `${E(compact ? 4 : 5)} ${E(compact ? 10 : 12)}`, borderRadius: 999, background: 'rgba(143,216,255,.1)', ...outline('rgba(143,216,255,.4)'),
+            }}>Request</span>
+          )}
+          {s.votes !== undefined
+            ? <span style={{ fontSize: E(compact ? 21 : 23), fontWeight: 650, color: i === 0 ? C.gold : C.ink2, flex: 'none', ...tnum }}>{votesText(s)}</span>
+            : s.song.duration > 0 && <span style={{ fontSize: E(compact ? 21 : 23), color: C.ink3, fontWeight: 550, flex: 'none', ...tnum }}>{mmss(s.song.duration)}</span>}
         </div>
       ))}
     </div>

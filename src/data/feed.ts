@@ -7,18 +7,26 @@
  * most two at a time. Song tags and covers are fetched only for songs a view
  * asks for, and kept in the host's display cache so a reload does not ask
  * again.
+ *
+ * On a request night the player names Remote Falcon's playlist as current
+ * while a request plays. The feed keeps hold of the show's own playlist
+ * through that, and, when Remote Falcon is connected, asks it who is waiting.
  */
 import type { FppPlaylist, FppSchedule, FppStatus, FppSystem } from '../lib/fpp-types';
 import { applyCheck, emptyReading, OFFLINE_AFTER_MISSES, type Reading } from '../lib/health';
 import {
-  cacheTtlFor, hostBaseUrl, playerEveryMs, remoteRoundMs,
-  PLAYLIST_EVERY_MS, REMOTE_IN_FLIGHT, REMOTE_MISS_AFTER_MS, RETRY_AFTER_MISS_MS, SCHEDULE_EVERY_MS, SYSTEMS_EVERY_MS,
+  cacheTtlFor, EDGE_EVERY_MS, hostBaseUrl, playerEveryMs, playerNextMs, remoteRoundMs,
+  PLAYLIST_EVERY_MS, REMOTE_IN_FLIGHT, REQUESTS_EVERY_MS, REQUEST_PLAYLIST_EVERY_MS, REMOTE_MISS_AFTER_MS, RETRY_AFTER_MISS_MS, SCHEDULE_EVERY_MS, SYSTEMS_EVERY_MS,
 } from '../lib/poll';
+import { showPlaylistName, type RfShow } from '../lib/remote-falcon';
 import { coverSearchTerm, pickCover, tagsFromMeta, type ItunesTrack, type SongNames, type SongTags } from '../lib/songs';
 import { controllersFrom } from '../lib/systems';
 
 /** Fetch JSON through the hub proxy; rejects on any failure. */
 export type Fetcher = (url: string, cacheTtlMs: number) => Promise<unknown>;
+
+/** Remote Falcon's show details through the hub, which adds the saved key. */
+export type RequestsFetcher = (cacheTtlMs: number) => Promise<unknown>;
 
 export interface FeedCache {
   get: (key: string) => unknown | undefined;
@@ -32,8 +40,17 @@ export interface FeedState {
   playerFetchedAt: number | null;
   systems: FppSystem[] | null;
   remotes: Readonly<Record<string, Reading>>;
+  /** The show's own playlist, held through a slotted-in request. */
+  showName: string;
+  /** The last sequence the player played from the show playlist, which is
+   *  where the show picks up after a request. */
+  lastShowSequence: string;
+  /** The playlist that was fetched (the show's, once it has answered). */
   playlistName: string;
   playlist: FppPlaylist | null;
+  /** Remote Falcon's last answer and when it came; null when not connected
+   *  or nothing has been heard. */
+  requests: { show: RfShow; at: number } | null;
   schedule: FppSchedule | null;
   /** Media file → tags (null: looked, none found). */
   meta: Readonly<Record<string, SongTags | null>>;
@@ -66,8 +83,17 @@ export class Feed {
   private state: FeedState;
   private listeners = new Set<() => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
-  private due = { player: 0, systems: 0, schedule: 0, playlist: 0, remote: 0 };
-  private busy = { player: false, systems: false, schedule: false, playlist: false };
+  private due = { player: 0, systems: 0, schedule: 0, playlist: 0, remote: 0, requestPlaylist: 0, requests: 0 };
+  private busy = { player: false, systems: false, schedule: false, playlist: false, requestPlaylist: false, requests: false };
+  /** The playlist Remote Falcon's player plugin inserts requests from. */
+  private requestPlaylist = '';
+  private requestsOn = false;
+  /** The next player answer, or Remote Falcon answer, must not be the hub's
+   *  cached copy: something just changed. */
+  private fresh = { player: false, requests: false };
+  /** Checks in a row made because a song was about to end. */
+  private edgeChecks = 0;
+  private wake: ReturnType<typeof setTimeout> | null = null;
   private remotesOut = 0;
   private remotesInFlight = new Set<string>();
   /** Boxes that missed once, and when to ask them again. */
@@ -85,10 +111,11 @@ export class Feed {
     private fetcher: Fetcher,
     private cache: FeedCache | null = null,
     private now: () => number = Date.now,
+    private requestsFetcher: RequestsFetcher | null = null,
   ) {
     this.state = {
       base, player: emptyReading(), playerFetchedAt: null, systems: null, remotes: {},
-      playlistName: '', playlist: null, schedule: null, meta: {}, covers: {},
+      showName: '', lastShowSequence: '', playlistName: '', playlist: null, requests: null, schedule: null, meta: {}, covers: {},
     };
   }
 
@@ -107,6 +134,15 @@ export class Feed {
   attach(el: Element): () => void {
     this.roots.add(el);
     return () => this.roots.delete(el);
+  }
+
+  /** Whether Remote Falcon is connected (the plugin setting), so the feed
+   *  knows to ask it during the show. */
+  setRequests(on: boolean): void {
+    if (on === this.requestsOn) return;
+    this.requestsOn = on;
+    this.due.requests = 0;
+    if (!on && this.state.requests) this.set({ requests: null });
   }
 
   /** Songs a view wants names for (current, next, first up, the cover grid). */
@@ -154,6 +190,16 @@ export class Feed {
   private stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.wake) clearTimeout(this.wake);
+    this.wake = null;
+  }
+
+  /** The 1 s tick is too coarse for a song change; tick again right when
+   *  the next player check is due. */
+  private wakeIn(ms: number): void {
+    if (!this.timer) return;
+    if (this.wake) clearTimeout(this.wake);
+    this.wake = setTimeout(() => { this.wake = null; this.tick(); }, ms);
   }
 
   private set(patch: Partial<FeedState>): void {
@@ -184,7 +230,10 @@ export class Feed {
     if (!this.busy.systems && now >= this.due.systems) this.pollSystems();
     if (!asleep && !this.busy.schedule && now >= this.due.schedule) this.pollSchedule();
 
-    const name = status?.current_playlist?.playlist || status?.scheduler?.nextPlaylist?.playlistName || '';
+    if (!this.busy.requestPlaylist && now >= this.due.requestPlaylist) this.pollRequestPlaylist();
+    if (this.requestsOn && this.requestsFetcher && live && !asleep && !this.busy.requests && now >= this.due.requests) this.pollRequests();
+
+    const name = this.state.showName;
     if (name && !this.busy.playlist && (name !== this.state.playlistName || now >= this.due.playlist)) {
       this.pollPlaylist(name);
     }
@@ -232,11 +281,24 @@ export class Feed {
       return playerEveryMs({ playing: n === 'playing', paused: n === 'paused', reachable, asleep });
     };
     const every = pace(before.status, before.misses < OFFLINE_AFTER_MISSES);
-    this.fetcher(this.url('/api/fppd/status'), cacheTtlFor(every))
+    const fresh = this.fresh.player;
+    this.fresh.player = false;
+    this.fetcher(this.url('/api/fppd/status'), fresh ? 0 : cacheTtlFor(every))
       .then((data) => {
         const s = data as FppStatus;
         const at = this.now();
-        this.set({ player: applyCheck(this.state.player, { ok: true, status: s }, at, false), playerFetchedAt: at });
+        // A new song or playlist is when Remote Falcon's queue moves too.
+        const was = before.status;
+        if (isPlaying(s) && (s.current_sequence !== was?.current_sequence || s.current_playlist?.playlist !== was?.current_playlist?.playlist)) {
+          this.due.requests = 0;
+          this.fresh.requests = true;
+        }
+        const showName = showPlaylistName(s, this.requestPlaylist, this.state.showName);
+        const onShow = isPlaying(s) && !!showName && s.current_playlist?.playlist === showName && !!s.current_sequence;
+        this.set({
+          player: applyCheck(this.state.player, { ok: true, status: s }, at, false), playerFetchedAt: at, showName,
+          lastShowSequence: onShow ? s.current_sequence!.split('/').pop()! : showName === this.state.showName ? this.state.lastShowSequence : '',
+        });
       })
       .catch(() => {
         this.set({ player: applyCheck(this.state.player, { ok: false }, this.now(), false) });
@@ -244,7 +306,16 @@ export class Feed {
       .finally(() => {
         this.busy.player = false;
         const p = this.state.player;
-        this.due.player = this.now() + pace(p.status, p.misses < OFFLINE_AFTER_MISSES);
+        const reachable = p.misses < OFFLINE_AFTER_MISSES;
+        let next = { inMs: pace(p.status, reachable), fresh: false };
+        // Awake and answering: catch the song change, or the show's start, as it happens.
+        if (!asleep && reachable) next = playerNextMs(next.inMs, p.status, this.now());
+        // A song that will not end (a stuck count) is not asked twice a second for long.
+        this.edgeChecks = next.fresh && next.inMs <= EDGE_EVERY_MS ? this.edgeChecks + 1 : 0;
+        if (this.edgeChecks > 20) next = { inMs: pace(p.status, reachable), fresh: false };
+        this.due.player = this.now() + next.inMs;
+        this.fresh.player = next.fresh;
+        if (next.inMs % 1000 !== 0 || next.fresh) this.wakeIn(next.inMs);
       });
   }
 
@@ -272,6 +343,35 @@ export class Feed {
       })
       .catch(() => { this.due.schedule = this.now() + RETRY_MS; })
       .finally(() => { this.busy.schedule = false; });
+  }
+
+  /** Which playlist the player's Remote Falcon plugin plays requests from.
+   *  A player without the plugin answers with an error, which is fine. */
+  private pollRequestPlaylist(): void {
+    this.busy.requestPlaylist = true;
+    this.due.requestPlaylist = this.now() + REQUEST_PLAYLIST_EVERY_MS;
+    this.fetcher(this.url('/api/plugin/remote-falcon/settings/remotePlaylist'), cacheTtlFor(REQUEST_PLAYLIST_EVERY_MS))
+      .then((data) => {
+        const name = (data as { remotePlaylist?: unknown })?.remotePlaylist;
+        this.requestPlaylist = typeof name === 'string' ? name : '';
+      })
+      .catch(() => { this.requestPlaylist = ''; })
+      .finally(() => { this.busy.requestPlaylist = false; });
+  }
+
+  private pollRequests(): void {
+    this.busy.requests = true;
+    const fresh = this.fresh.requests;
+    this.fresh.requests = false;
+    this.requestsFetcher!(fresh ? 0 : cacheTtlFor(REQUESTS_EVERY_MS))
+      .then((data) => {
+        if (!data || typeof data !== 'object') throw new Error('no show');
+        if (this.requestsOn) this.set({ requests: { show: data as RfShow, at: this.now() } });
+        this.due.requests = this.now() + REQUESTS_EVERY_MS;
+      })
+      // The last answer stays until it is too old to trust (the model decides).
+      .catch(() => { this.due.requests = this.now() + RETRY_MS; })
+      .finally(() => { this.busy.requests = false; });
   }
 
   private pollPlaylist(name: string): void {

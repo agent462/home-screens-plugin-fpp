@@ -1,0 +1,546 @@
+{
+ "preferences": {
+  "viewerControlEnabled": true,
+  "viewerControlMode": "JUKEBOX",
+  "jukeboxDepth": 10,
+  "locationCheckMethod": "NONE"
+ },
+ "sequences": [
+  {
+   "name": "A Christmas Storm",
+   "displayName": "A Christmas Storm",
+   "artist": "ASHBA",
+   "duration": 219,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/a7/6e/2f/a76e2fad-de7b-a448-590c-ea958f404ac5/602435345147.png/600x600bb.jpg",
+   "visible": true,
+   "index": 1,
+   "order": 1
+  },
+  {
+   "name": "A Holly Jolly Christmas",
+   "displayName": "A Holly Jolly Christmas",
+   "artist": "Burl Ives",
+   "duration": 133,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/56/af/6a/56af6a9b-6c5c-5ce2-ca5e-76ea29bb5feb/06UMGIM17860.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 2,
+   "order": 2
+  },
+  {
+   "name": "A Million Dreams - The Greatest Showman",
+   "displayName": "A Million Dreams - The Greatest Showman",
+   "artist": "Ziv Zaifman, Hugh Jackman & Michelle Williams",
+   "duration": 269,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a6/63/54/a6635418-7d49-b237-d1c9-ba85fa57dbc6/075679886613.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 3,
+   "order": 3
+  },
+  {
+   "name": "A Shelfish Elf - Jelly of the Month Club",
+   "displayName": "A Shelfish Elf (Radio Edit)",
+   "artist": "Jelly of the Month Club",
+   "duration": 196,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/3f/10/9b/3f109bd3-fae8-a13f-c345-6d893a99307b/859715841749_cover.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 4,
+   "order": 4
+  },
+  {
+   "name": "All I Want for Christmas Is You",
+   "displayName": "All I Want for Christmas Is You",
+   "artist": "Mariah Carey",
+   "duration": 241,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/c6/b7/27/c6b727f7-3a32-6b43-cee2-05bb71daf1cf/dj.itfmdeif.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 5,
+   "order": 5
+  },
+  {
+   "name": "Baby It's Christmas",
+   "displayName": "Baby It's Christmas",
+   "artist": "Urban Cafe Crew",
+   "duration": 244,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/5c/9e/09/5c9e09ca-3dde-d45d-e0b4-e3d7793de6ec/129664.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 6,
+   "order": 6
+  },
+  {
+   "name": "Better Days - The Goo Goo Dolls",
+   "displayName": "Better Days",
+   "artist": "The Goo Goo Dolls",
+   "duration": 213,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/b4/0c/98/mzi.vhowcacb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 7,
+   "order": 7
+  },
+  {
+   "name": "Carol of the Bells - David Foster",
+   "displayName": "Carol of the Bells (Instrumental)",
+   "artist": "David Foster",
+   "duration": 154,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/76/e5/4d/76e54d17-f381-4cdb-886d-5e0b38179fec/17UM1IM31044.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 8,
+   "order": 8
+  },
+  {
+   "name": "Carol Of The Bells - Lindsey Sterling",
+   "displayName": "Carol Of The Bells",
+   "artist": "Lindsey Stirling",
+   "duration": 166,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/76/46/6a/76466a9d-23f9-8c12-fb54-fa3530e4a165/17CRGIM04301.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 9,
+   "order": 9
+  },
+  {
+   "name": "Children Christmas Mix",
+   "displayName": "Children Christmas Mix",
+   "artist": null,
+   "duration": 214,
+   "imageUrl": "",
+   "visible": true,
+   "index": 10,
+   "order": 10
+  },
+  {
+   "name": "Christmas Every Day - Simple Plan",
+   "displayName": "Christmas Every Day",
+   "artist": "Simple Plan",
+   "duration": 226,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/61/51/ce/6151ce0a-d6c8-cf56-80cf-f8ba98a43d08/075679902191.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 11,
+   "order": 11
+  },
+  {
+   "name": "Christmas Time Dont Let the Bells End",
+   "displayName": "Christmas Time (Don't Let the Bells End)",
+   "artist": "The Darkness",
+   "duration": 210,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ea/85/86/ea858642-46d0-41e0-97c8-0c592050393d/120292.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 12,
+   "order": 12
+  },
+  {
+   "name": "Christmas Tree Farm - Taylor Swift",
+   "displayName": "Christmas Tree Farm",
+   "artist": "Taylor Swift",
+   "duration": 228,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/ca/55/5a/ca555a0e-c360-26e6-437d-098b0089482a/19UM1IM09492.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 13,
+   "order": 13
+  },
+  {
+   "name": "Christmas Without You - Ava Max",
+   "displayName": "Christmas Without You",
+   "artist": "Ava Max",
+   "duration": 169,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/14/bc/35/14bc3529-1982-aaf1-ae1b-ed1238efc08a/075679799036.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 14,
+   "order": 14
+  },
+  {
+   "name": "classic christmas medley",
+   "displayName": "Classic Christmas Medley",
+   "artist": null,
+   "duration": 298,
+   "imageUrl": "",
+   "visible": true,
+   "index": 15,
+   "order": 15
+  },
+  {
+   "name": "Crystallize - Lindsey Stirling",
+   "displayName": "Crystallize - Lindsey Stirling (Dubstep Violin Original Song)",
+   "artist": "Lindsey Stirling",
+   "duration": 185,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d4/86/e1/d486e134-ed20-f55a-4fee-4ce39b58f120/0.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 16,
+   "order": 16
+  },
+  {
+   "name": "Defying Gravity",
+   "displayName": "Defying Gravity (From \"Wicked\" Original Broadway Cast Recording/2003)",
+   "artist": "Kristin Chenoweth & Idina Menzel",
+   "duration": 276,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/15/f6/4d/15f64dc7-6ee9-a29a-4846-c22488cca889/06UMGIM10671.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 17,
+   "order": 17
+  },
+  {
+   "name": "Grandma Got Run over by a Reindeer",
+   "displayName": "Grandma Got Run over by a Reindeer",
+   "artist": "Elmo & Patsy",
+   "duration": 206,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/7d/2c/9d/7d2c9d81-9111-b380-00a1-134571490134/dj.utyjfloe.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 18,
+   "order": 18
+  },
+  {
+   "name": "Here Comes Santa Claus Trap Remix",
+   "displayName": "Here Comes Santa Claus",
+   "artist": "Trap City",
+   "duration": 139,
+   "imageUrl": "",
+   "visible": true,
+   "index": 19,
+   "order": 19
+  },
+  {
+   "name": "Home Alone-2025",
+   "displayName": "Home Alone Carol",
+   "artist": null,
+   "duration": 152,
+   "imageUrl": "",
+   "visible": true,
+   "index": 20,
+   "order": 20
+  },
+  {
+   "name": "I Knew It I Knew You - From Toy Story 5",
+   "displayName": "I Knew It, I Knew You (From \"Toy Story 5\")",
+   "artist": "Taylor Swift",
+   "duration": 178,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/34/35/6c/34356cb4-bd0b-3bac-b118-1a6d7264dc64/26UMGIM69942.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 21,
+   "order": 21
+  },
+  {
+   "name": "I Want You for Christmas - Cheap Trick",
+   "displayName": "I Want You For Christmas",
+   "artist": "Cheap Trick",
+   "duration": 203,
+   "imageUrl": "",
+   "visible": true,
+   "index": 22,
+   "order": 22
+  },
+  {
+   "name": "Into the Unknown - Panic At The Disco",
+   "displayName": "Into the Unknown (Panic! At The Disco Version)",
+   "artist": "Panic! At the Disco",
+   "duration": 189,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/66/cf/70/66cf7012-98ed-b201-21ed-b1ee0e9ad26f/19UM1IM00155.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 23,
+   "order": 23
+  },
+  {
+   "name": "It Came Upon A Midnight Clear - Tommee Profitt",
+   "displayName": "It Came Upon A Midnight Clear",
+   "artist": "Tommee Profitt & Brooke",
+   "duration": 288,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/9a/89/f5/9a89f541-f375-8a13-3597-876fe97f1ab5/20UMGIM75639.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 24,
+   "order": 24
+  },
+  {
+   "name": "Jingle Bells - Kaskade",
+   "displayName": "Jingle Bells - Kaskade",
+   "artist": "Kaskade",
+   "duration": 167,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5a/22/f6/5a22f6b7-b636-1973-05d1-ad8cf0b26427/886447436585.png/600x600bb.jpg",
+   "visible": true,
+   "index": 25,
+   "order": 25
+  },
+  {
+   "name": "KPop Demon Hunters - Golden",
+   "displayName": "Golden",
+   "artist": "HUNTR/X, EJAE, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast",
+   "duration": 169,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e1/15/42/e1154273-8ecd-5702-e6e6-597f28001681/25UMGIM82363.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 26,
+   "order": 26
+  },
+  {
+   "name": "Let It Go Frozen_Soundtrack",
+   "displayName": "Let It Go (From \"Frozen\"/Soundtrack Version)",
+   "artist": "Idina Menzel",
+   "duration": 223,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/a0/bc/74/a0bc74c0-3423-de69-a420-69c3b50bc5e1/00050087310943.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 27,
+   "order": 27
+  },
+  {
+   "name": "Light of the World - Lauren Daigle",
+   "displayName": "Light of the World",
+   "artist": "Lauren Daigle",
+   "duration": 259,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/81/f4/2d/81f42d0a-36da-e025-eeb4-36df9d1cd539/829619143959.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 28,
+   "order": 28
+  },
+  {
+   "name": "Love Tonight - David Guetta Remix",
+   "displayName": "Love Tonight (David Guetta Remix)",
+   "artist": "Shouse",
+   "duration": 180,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/aa/0d/92/aa0d9278-df47-dcb8-a876-d93aeacef8e4/191515989932.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 29,
+   "order": 29
+  },
+  {
+   "name": "Make Room - Casting Crowns",
+   "displayName": "Make Room",
+   "artist": "Casting Crowns",
+   "duration": 264,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/d9/fd/9e/d9fd9eed-0b05-46b6-a4c3-65114de123a0/886446639680.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 30,
+   "order": 30
+  },
+  {
+   "name": "Noel - He Is Born - Tommee Profitt",
+   "displayName": "Noel (He Is Born)",
+   "artist": "Tommee Profitt & Stanaj",
+   "duration": 261,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/9a/89/f5/9a89f541-f375-8a13-3597-876fe97f1ab5/20UMGIM75639.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 31,
+   "order": 31
+  },
+  {
+   "name": "Nutcracker Christmas Dubstep",
+   "displayName": "Christmas Dubstep",
+   "artist": "Neoclassic",
+   "duration": 161,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music49/v4/2f/fa/76/2ffa7690-35a1-4ee4-e162-21d74d030795/859716279329_cover.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 32,
+   "order": 32
+  },
+  {
+   "name": "O Come All Ye Faithful - O Holy Night - TSO",
+   "displayName": "O Come All Ye Faithful / O Holy Night (Instrumental)",
+   "artist": "Trans-Siberian Orchestra",
+   "duration": 259,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/e0/7c/f4/e07cf4d8-8fbf-96df-ae7a-6a25c8583256/mzi.sxqwkjew.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 33,
+   "order": 33
+  },
+  {
+   "name": "O Come O Come Emmanuel",
+   "displayName": "O Come O Come Emmanuel",
+   "artist": "Tommee Profitt",
+   "duration": 193,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/9a/89/f5/9a89f541-f375-8a13-3597-876fe97f1ab5/20UMGIM75639.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 34,
+   "order": 34
+  },
+  {
+   "name": "ordinary - alex warren",
+   "displayName": "Ordinary",
+   "artist": "Alex Warren",
+   "duration": 186,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/46/78/fb/4678fb84-d19e-f11b-93ff-4dc17660bff8/075679619075.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 35,
+   "order": 35
+  },
+  {
+   "name": "Scary Christmas Dubstep - Hedegaard",
+   "displayName": "Scary Christmas",
+   "artist": "HEDEGAARD",
+   "duration": 227,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/88/92/f8/8892f886-2fa3-c257-cde7-63d45ab67b0d/cover.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 36,
+   "order": 36
+  },
+  {
+   "name": "Silent Night Rewrapped - King & Country",
+   "displayName": "Silent Night (Rewrapped)",
+   "artist": "for KING & COUNTRY",
+   "duration": 222,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/45/dd/c0/45ddc022-ae13-ab07-54e5-0a5c7fb8132f/194646541468.png/600x600bb.jpg",
+   "visible": true,
+   "index": 37,
+   "order": 37
+  },
+  {
+   "name": "Skrillex Medley",
+   "displayName": "Skrillex Medley",
+   "artist": null,
+   "duration": 214,
+   "imageUrl": "",
+   "visible": true,
+   "index": 38,
+   "order": 38
+  },
+  {
+   "name": "Snowman - Sia",
+   "displayName": "Snowman",
+   "artist": "Sia",
+   "duration": 165,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/85/c3/21/85c32113-1c4c-571c-7602-88f568d8081c/075679861016.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 39,
+   "order": 39
+  },
+  {
+   "name": "Spirited - Do a Little Good",
+   "displayName": "Do A Little Good [Clean] (Squeaky Clean Version)",
+   "artist": "Ryan Reynolds, Will Ferrell, Patrick Page, Sunita Mani & Tracy Morgan",
+   "duration": 223,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/aa/be/af/aabeaf86-209f-647a-b9c1-55c1eb1317c4/22UM1IM13390.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 40,
+   "order": 40
+  },
+  {
+   "name": "That Christmas Morning Feelin",
+   "displayName": "That Christmas Morning Feelin’ (Curtain Call)",
+   "artist": "Ryan Reynolds, Will Ferrell, Octavia Spencer, Tracy Morgan, Patrick Page, Andrea Anders, Marlow Barkley, Jen Tullock & The Spirited Ensemble",
+   "duration": 148,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/dd/93/ff/dd93ffcd-7d4b-774b-b69a-2db6d61fbb2b/22UM1IM13384.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 41,
+   "order": 41
+  },
+  {
+   "name": "The Fate of Ophelia - Taylor Swift",
+   "displayName": "The Fate of Ophelia",
+   "artist": "Taylor Swift",
+   "duration": 226,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/a0/dd/fd/a0ddfd72-ee9e-f046-6466-a5dbefc696fa/26UM1IM21436.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 42,
+   "order": 42
+  },
+  {
+   "name": "Theres No Place Like Home for the Holidays - Garth Brooks",
+   "displayName": "(There's No Place Like) Home for the Holidays",
+   "artist": "Garth Brooks",
+   "duration": 138,
+   "imageUrl": "",
+   "visible": true,
+   "index": 43,
+   "order": 43
+  },
+  {
+   "name": "TSO Chrismas Medley 2025 - Trans Siberian Orchestra",
+   "displayName": "TSO Chrismas Medley 2025",
+   "artist": "Trans Siberian Orchestra",
+   "duration": 192,
+   "imageUrl": "",
+   "visible": true,
+   "index": 44,
+   "order": 44
+  },
+  {
+   "name": "Tsunami - DVBBS & Borgeous",
+   "displayName": "Tsunami",
+   "artist": "DVBBS & Borgeous",
+   "duration": 236,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/f2/3f/73/f23f73c7-82e6-a258-278a-900d06da4bb4/8712944442830.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 45,
+   "order": 45
+  },
+  {
+   "name": "We Need a Little Christmas - Percy Faith",
+   "displayName": "We Need a Little Christmas",
+   "artist": "Percy Faith",
+   "duration": 128,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/92/4f/05/mzi.vjylvyrj.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 46,
+   "order": 46
+  },
+  {
+   "name": "We Three Kings - Tommee Profitt & We The Kingdom",
+   "displayName": "We Three Kings",
+   "artist": "Tommee Profitt & We The Kingdom",
+   "duration": 250,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/9a/89/f5/9a89f541-f375-8a13-3597-876fe97f1ab5/20UMGIM75639.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 47,
+   "order": 47
+  },
+  {
+   "name": "What A Glorious Night - Sidewalk Prophets",
+   "displayName": "What A Glorious Night",
+   "artist": "Sidewalk Prophets",
+   "duration": 304,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/7d/32/09/7d320947-eb0b-fece-aa6e-6a1d489a84e1/080688996321.png/600x600bb.jpg",
+   "visible": true,
+   "index": 48,
+   "order": 48
+  },
+  {
+   "name": "What Christmas Means to Me - John Legend feat Stevie Wonder",
+   "displayName": "What Christmas Means to Me",
+   "artist": "John Legend feat. Stevie Wonder on harmonica",
+   "duration": 160,
+   "imageUrl": "",
+   "visible": true,
+   "index": 49,
+   "order": 49
+  },
+  {
+   "name": "winter wonderland - Alicia Moffet",
+   "displayName": "Winter Wonderland",
+   "artist": "Alicia Moffet",
+   "duration": 186,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/5d/fd/9c/5dfd9cf8-15f5-f221-c150-3b9b54f768ef/197187234684.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 50,
+   "order": 50
+  },
+  {
+   "name": "Winter Wonderland - Here Comes Santa Claus - Snoop Dogg (From _Pitch Perfect 2)",
+   "displayName": "Winter Wonderland / Here Comes Santa Claus (From \"Pitch Perfect 2\" Soundtrack)",
+   "artist": "Snoop Dogg & Anna Kendrick",
+   "duration": 184,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/97/5d/a9/975da9c0-578e-acb8-d98f-ff304e08bfb1/15UMGIM40151.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 51,
+   "order": 51
+  },
+  {
+   "name": "You Make It Feel Like Christmas - Gwen Stefani and Blake Shelton",
+   "displayName": "You Make It Feel Like Christmas [feat. Blake Shelton]",
+   "artist": "Gwen Stefani",
+   "duration": 156,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/6c/0d/cc/6c0dcc73-55ff-aeb2-e543-acc83581dbe7/17UM1IM23929.rgb.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 52,
+   "order": 52
+  },
+  {
+   "name": "youre a mean one mr grinch",
+   "displayName": "You're a Mean One, Mr. Grinch",
+   "artist": "Small Town Titans",
+   "duration": 257,
+   "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d6/62/d8/d662d8ad-1b0c-f1c1-7e13-637cec1fc2b3/191924587927.jpg/600x600bb.jpg",
+   "visible": true,
+   "index": 53,
+   "order": 53
+  }
+ ],
+ "sequenceGroups": [],
+ "requests": [],
+ "votes": [],
+ "playingNow": "",
+ "playingNext": "",
+ "playingNextFromSchedule": ""
+}
