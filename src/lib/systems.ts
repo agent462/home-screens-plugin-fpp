@@ -107,8 +107,11 @@ export function controllersFrom(
       isPlayer: s.local === 1 || s.fppModeString === 'player',
     });
   }
-  return list.sort((a, b) =>
-    a.isPlayer !== b.isPlayer
-      ? a.isPlayer ? -1 : 1
-      : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  return list.sort(byPlayerThenName);
 }
+
+/** The player first, then everything else by name. */
+export const byPlayerThenName = (a: Controller, b: Controller): number =>
+  (a.isPlayer !== b.isPlayer
+    ? a.isPlayer ? -1 : 1
+    : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));

@@ -3,6 +3,7 @@ import { RF_SECRET, RF_SHOW_URL } from './lib/remote-falcon';
 import type { SongNameSource } from './lib/songs';
 import type { ViewName } from './ui/views';
 import { readLinks, type Links } from './lib/power';
+import { readControllerPrefs, readShow, SUBTITLES, type ControllerPrefs, type ShowSettings, type Subtitle } from './lib/show';
 import { SEE_THROUGH, themeById } from './ui/theme';
 
 export const PLUGIN_ID = 'fpp';
@@ -15,6 +16,10 @@ export interface LightShowConfig {
   songNames: SongNameSource;
   covers: boolean;
   hiddenControllers: string[];
+  /** The line under the show's name. */
+  subtitle: Subtitle;
+  /** The family's own words for that line. */
+  tagline: string;
 }
 
 const VIEWS: ViewName[] = ['show', 'player', 'controllers', 'strip'];
@@ -27,6 +32,8 @@ export function readConfig(raw: Record<string, unknown>): LightShowConfig {
     songNames: raw.songNames === 'sequence' ? 'sequence' : 'tags',
     covers: raw.covers !== false,
     hiddenControllers: Array.isArray(raw.hiddenControllers) ? raw.hiddenControllers.filter((x): x is string => typeof x === 'string') : [],
+    subtitle: SUBTITLES.includes(raw.subtitle as Subtitle) ? (raw.subtitle as Subtitle) : 'date',
+    tagline: typeof raw.tagline === 'string' ? raw.tagline.trim().slice(0, 80) : '',
   };
 }
 
@@ -40,6 +47,14 @@ export const OUTLETS_SETTING = 'outlets';
 export function savedLinks(): Links {
   return readLinks(sdk()?.getPluginSettings?.(PLUGIN_ID)?.[OUTLETS_SETTING]);
 }
+
+/** Plugin setting that holds the show's name, logo and main playlist. */
+export const SHOW_SETTING = 'show';
+export const savedShow = (): ShowSettings => readShow(sdk()?.getPluginSettings?.(PLUGIN_ID)?.[SHOW_SETTING]);
+
+/** Plugin setting that holds the controllers' names and order. */
+export const CONTROLLERS_SETTING = 'controllers';
+export const savedControllerPrefs = (): ControllerPrefs => readControllerPrefs(sdk()?.getPluginSettings?.(PLUGIN_ID)?.[CONTROLLERS_SETTING]);
 
 /** Plugin setting that says Remote Falcon is connected. The key itself is a
  *  hub secret, which the wall can use but never read. */

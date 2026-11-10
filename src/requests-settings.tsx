@@ -41,7 +41,9 @@ function Status({ color, text, textColor = '#d4d4d4' }: { color: string; text: s
   );
 }
 
-export function RequestsSettings({ playerBase }: { playerBase: string }) {
+/** `onConnected` tells the rest of the settings when the connection is made
+ *  or dropped, since some of them step aside for Remote Falcon. */
+export function RequestsSettings({ playerBase, onConnected }: { playerBase: string; onConnected?: (on: boolean) => void }) {
   const sdk = window.__HS_SDK__;
   const inputClass = sdk?.INPUT_CLASS ?? '';
   const [state, setState] = React.useState<State>(() => (requestsConnected() ? { kind: 'checking' } : { kind: 'off' }));
@@ -97,6 +99,7 @@ export function RequestsSettings({ playerBase }: { playerBase: string }) {
       setToken('');
       setSecret('');
       setState(result);
+      onConnected?.(true);
     } finally {
       setBusy(false);
     }
@@ -109,6 +112,7 @@ export function RequestsSettings({ playerBase }: { playerBase: string }) {
       await sdk?.setPluginSettings?.(PLUGIN_ID, { [REQUESTS_SETTING]: false });
       await secretCall('DELETE', { key: RF_SECRET });
       setState({ kind: 'off' });
+      onConnected?.(false);
     } finally {
       setBusy(false);
     }

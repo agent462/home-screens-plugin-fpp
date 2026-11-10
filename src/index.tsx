@@ -2,17 +2,18 @@ import React from 'react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { Feed, feedFor, type FeedState } from './data/feed';
-import { fetchRequests, proxyFetch, readConfig, requestsConnected, savedLinks, sdk } from './config';
+import { fetchRequests, proxyFetch, readConfig, requestsConnected, savedControllerPrefs, savedLinks, savedShow, sdk } from './config';
 import { buildModel, wantedCoverNames, wantedMedia } from './data/model';
 import { PowerStore, powerStore } from './data/power';
 import { haApi } from './lib/ha';
 import type { OutletPower } from './lib/health';
 import { sharedWith } from './lib/power';
+import { arrangeControllers, readControllerPrefs, titleOf } from './lib/show';
 import { controllersFrom } from './lib/systems';
 import type { PowerLink } from './ui/power';
 import { playerBaseUrl } from './lib/poll';
 import { useBox, useNow } from './ui/hooks';
-import { Backdrop, Sheet, type Env } from './ui/parts';
+import { Backdrop, Sheet, type Brand, type Env } from './ui/parts';
 import { designPx } from './ui/tokens';
 import { STAGE, stageAccentOf, themeById, themeCard, themePage, themeVars } from './ui/theme';
 import { ControllersView, fitScale, PlayerView, SetupView, ShowView, StripView, type Orientation } from './ui/views';
@@ -62,7 +63,19 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   // its own one-second tick.
   const now = useNow(15_000);
   const host = useHost();
-  const env: Env = { ...host, now, address: cfg.playerAddress.trim() };
+  // The show's name, logo and main playlist, and the controllers' names and
+  // order: saved once for the plugin and re-read on the slow tick, like the
+  // outlet links below, so a change in the editor reaches a wall on its own.
+  const show = savedShow();
+  const brand = React.useMemo<Brand>(
+    () => ({ title: titleOf(show), logo: show.logo, subtitle: cfg.subtitle, tagline: cfg.tagline }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the fields stand for `show`
+    [show.name, show.logo, cfg.subtitle, cfg.tagline],
+  );
+  const env: Env = { ...host, now, address: cfg.playerAddress.trim(), brand };
+  React.useEffect(() => { feed?.setMainPlaylist(show.mainPlaylist); }, [feed, show.mainPlaylist]);
+  const prefsKey = JSON.stringify(savedControllerPrefs());
+  const prefs = React.useMemo(() => readControllerPrefs(JSON.parse(prefsKey)), [prefsKey]);
 
   // Outlets: the saved links are re-read on the slow tick, so a link made in
   // the editor reaches a wall without a reload.
@@ -89,10 +102,10 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const hiddenKey = cfg.hiddenControllers.join('|');
   const model = React.useMemo(() => (state ? buildModel(state, {
     songNames: cfg.songNames, covers: cfg.covers, hidden: cfg.hiddenControllers, timeZone: host.timeZone, locale: host.locale, now,
-    formatNumber: (n) => n.toLocaleString(host.locale), power: outletPower,
+    formatNumber: (n) => n.toLocaleString(host.locale), power: outletPower, controllers: prefs,
   }) : null),
   // eslint-disable-next-line react-hooks/exhaustive-deps -- hiddenKey stands for the array
-  [state, now, cfg.songNames, cfg.covers, hiddenKey, host.timeZone, host.locale, outletPower]);
+  [state, now, cfg.songNames, cfg.covers, hiddenKey, host.timeZone, host.locale, outletPower, prefs]);
 
   // Ask the feed for the tags and covers of the songs on screen.
   const mediaKey = model ? wantedMedia(model).join('\n') : '';
@@ -113,7 +126,7 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const openReading = openEntity && powerState.ha === 'ok' ? powerState.outlets[openEntity] : null;
   if (open && openEntity && openReading && state) {
     // Every controller counts for "also powers", even ones this module hides.
-    const everyone = controllersFrom(state.systems ?? []);
+    const everyone = arrangeControllers(controllersFrom(state.systems ?? []), prefs);
     // Only the show player shuts down first, and only while it can hear us.
     const shutDown = open.c.isPlayer && !open.health.offline ? base : undefined;
     openPower = {
@@ -127,7 +140,7 @@ export default function LightShow({ config, style }: PluginComponentProps) {
 
   const props = model ? { m: model, env, o, onOpen: setOpenId } : null;
   let body: React.ReactNode = null;
-  if (!base) body = <SetupView view={cfg.view} />;
+  if (!base) body = <SetupView view={cfg.view} brand={brand} />;
   else if (props) {
     body = cfg.view === 'player' ? <PlayerView {...props} />
       : cfg.view === 'controllers' ? <ControllersView {...props} />

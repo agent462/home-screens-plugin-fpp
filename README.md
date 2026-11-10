@@ -58,7 +58,8 @@ Good to know:
 
 - The connection is saved once for the plugin, so every Light Show module and wall shares it.
 - The token and secret key are turned into one key in the editor. Only that key is saved, on the hub, and it never reaches a wall.
-- The wall asks Remote Falcon once every 5 seconds, only while the show is playing. If Remote Falcon stops answering, the wall carries on with what the show player tells it.
+- The wall asks Remote Falcon once every 5 seconds while the show is playing, and about every half hour the rest of the time. If Remote Falcon stops answering, the wall carries on with what the show player tells it.
+- The song names and covers you set in Remote Falcon are used on the wall, since you picked them by hand. A song it does not have is named from its music file.
 
 ## Light on the controllers
 
@@ -69,7 +70,7 @@ Every request is FPP's own `/api/fppd/status` (answered by fppd, no PHP), sent t
 | Player status | every 2 s while a song plays, 5 s otherwise, and right as a song ends or a scheduled show starts |
 | Each remote | once a minute, spread out; every 30 s during the show |
 | Controller list, schedule, playlist | every 5 to 30 minutes |
-| Remote Falcon (when connected) | every 5 s while the show plays, and right as a song changes |
+| Remote Falcon (when connected) | every 5 s while the show plays, and right as a song changes; every 30 minutes otherwise |
 | Song tags and covers | once per song, then cached |
 
 A controller that misses one check is asked again 10 seconds later, and called Offline after two misses. While the wall sleeps, everything slows down.
@@ -79,11 +80,15 @@ A controller that misses one check is asked again 10 seconds later, and called O
 | Setting | What it does |
 |---|---|
 | Show player | The FPP player's address. |
+| Your show: Name | What the wall calls your show, in place of "Light Show". Shared by every Light Show module. |
+| Your show: Logo | A picture shown beside the name, in place of the string of bulbs. It is made small to fit. Shared by every Light Show module. |
+| Your show: Main show playlist | Follows the player's schedule unless you pick one. Pick one if your player also runs other playlists, like a pre-show or a test list: the wall then counts only that one as the show and mentions anything else as "Playing now". Shared by every Light Show module. |
 | View | Show, Player, Controllers or Now Playing strip. |
+| Under the name | The small line under your show's name: today's date and time, when the show runs, your own words, or nothing. |
 | Theme | See-through (your screen's background shows behind the module), or one of the 12 full-screen themes: Linen, Paper, Mist, Sandstone, Vellum, Bloom, Charcoal, Midnight, Slate, Aurora, Obsidian, Horizon. The player card stays dark in every theme; the Player view only takes the theme's accent color. |
-| Song names from | The music file's tags, or the sequence name (for files with wrong tags). |
-| Look up album covers | Finds covers through Apple's free music search; only the title and artist are sent. |
-| Controllers to show | Leave out any controller. |
+| Song names from | The music file's tags, or the sequence name (for files with wrong tags). With Remote Falcon connected this steps aside: names come from there. |
+| Look up album covers | Finds covers through Apple's free music search; only the title and artist are sent. With Remote Falcon connected its covers come first and this only fills in the ones it lacks. |
+| Controllers | Untick a controller to leave it out of this module. Type a name to call it something else, and use the arrows to put the ones you care about first. Names and order are shared by every Light Show module. |
 | Power | Which Home Assistant outlet powers each controller. Shared by every Light Show module. |
 | Remote Falcon | Connects your Remote Falcon account so the wall shows requests and votes. Shared by every Light Show module. |
 

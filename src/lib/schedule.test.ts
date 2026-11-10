@@ -59,6 +59,47 @@ describe('showPhase on the real 2026 schedule (nightly 5 to 11 PM from Nov 27)',
   });
 });
 
+describe('showPhase with a main show picked', () => {
+  const main = { name: '2026', requestPlaylist: '2026-RF' };
+  const start = at('2026-11-27T17:00:00-06:00') / 1000;
+  const end = at('2026-11-27T23:00:00-06:00') / 1000;
+  const running = (playlist: string, scheduled = playlist): FppStatus => ({
+    status_name: 'playing', current_playlist: { playlist },
+    scheduler: { status: 'playing', currentPlaylist: { playlistName: scheduled, scheduledEndTime: end }, nextPlaylist: { playlistName: '2026', scheduledStartTime: start } },
+  });
+
+  it('is still waiting while a pre-show playlist runs', () => {
+    const now = at('2026-11-27T16:45:00-06:00');
+    const p = showPhase(running('Pre-show'), schedule, now, TZ, main);
+    expect(p).toMatchObject({ kind: 'waiting', playlist: '2026', nextAt: start * 1000 });
+  });
+
+  it('is playing on the main playlist, and through a request slotted into it', () => {
+    const now = at('2026-11-27T19:42:00-06:00');
+    expect(showPhase(running('2026'), schedule, now, TZ, main)).toEqual({ kind: 'playing', paused: false, endsAt: end * 1000, playlist: '2026' });
+    expect(showPhase(running('2026-RF', '2026'), schedule, now, TZ, main)).toMatchObject({ kind: 'playing', playlist: '2026' });
+    // Started by hand: nothing scheduled, so a request still belongs to the show.
+    expect(showPhase({ status_name: 'playing', current_playlist: { playlist: '2026-RF' } }, schedule, now, TZ, main).kind).toBe('playing');
+  });
+
+  it('does not take a request slotted into another playlist for the show', () => {
+    const now = at('2026-11-27T16:45:00-06:00');
+    expect(showPhase(running('2026-RF', 'Pre-show'), schedule, now, TZ, main).kind).toBe('waiting');
+  });
+
+  it('is done for tonight when another playlist runs after the show, finding the next show in the schedule', () => {
+    const now = at('2026-11-27T23:30:00-06:00');
+    const after: FppStatus = { status_name: 'playing', current_playlist: { playlist: 'Overnight' }, scheduler: { currentPlaylist: { playlistName: 'Overnight' }, nextPlaylist: { playlistName: 'Overnight', scheduledStartTime: start + 86400 * 2 } } };
+    const p = showPhase(after, schedule, now, TZ, main);
+    expect(p.kind).toBe('done');
+    expect(p.kind === 'done' && new Date(p.nextAt!).toISOString()).toBe('2026-11-28T23:00:00.000Z');
+  });
+
+  it('is idle when the picked playlist is not on the schedule', () => {
+    expect(showPhase(running('2026'), schedule, at('2026-11-27T19:42:00-06:00'), TZ, { name: 'Gone', requestPlaylist: '' })).toEqual({ kind: 'idle' });
+  });
+});
+
 describe('schedule words', () => {
   const entry = entryFor(schedule, '2026', at('2026-11-27T17:00:00-06:00'), TZ);
   it('describes the rule', () => {

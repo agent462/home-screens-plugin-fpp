@@ -3,6 +3,7 @@ import type { ControllerView, ShowModel, SongView } from '../data/model';
 import { clockText, mmss, temperature, uptimeText, type Units } from '../lib/format';
 import { namesSentence } from '../lib/health';
 import { readingNames } from '../lib/sensors';
+import { DEFAULT_TITLE, type Subtitle } from '../lib/show';
 import { namesFromFile } from '../lib/songs';
 import { BrandMark, Icon } from './icons';
 import { useNow } from './hooks';
@@ -15,18 +16,38 @@ export interface Env {
   locale: string;
   now: number;
   address: string;
+  /** The show's own name, logo and the line under them. All optional: a
+   *  show nobody named is "Light Show" with the string of bulbs. */
+  brand?: Brand;
+}
+
+export interface Brand {
+  /** '' when a logo stands on its own. */
+  title: string;
+  /** A small picture as a data address, or null for the string of bulbs. */
+  logo: string | null;
+  subtitle: Subtitle;
+  tagline: string;
 }
 
 // ── Header and pill ─────────────────────────────────────────────────────────
 
-export function Header({ sub, pill }: { sub: string; pill: React.ReactNode }) {
+/** The family's logo `size` tall, or the plugin's string of bulbs `mark` wide. */
+export function Logo({ brand, size, mark }: { brand?: Brand; size: number; mark: number }) {
+  if (!brand?.logo) return <BrandMark width={E(mark)} />;
+  return <img src={brand.logo} alt="" style={{ display: 'block', height: E(size), width: 'auto', maxWidth: E(size * 3), objectFit: 'contain', flex: 'none' }} />;
+}
+
+export function Header({ env, sub, pill }: { env: Env; sub: string; pill: React.ReactNode }) {
+  const title = env.brand ? env.brand.title : DEFAULT_TITLE;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: E(20), minHeight: E(84), flex: 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: E(18), minWidth: 0 }}>
-        <BrandMark width={E(78)} />
+        <Logo brand={env.brand} size={title ? 72 : 84} mark={78} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: E(40), fontWeight: 750, letterSpacing: '-.02em', lineHeight: 1 }}>Light Show</div>
-          <div style={{ fontSize: E(23), color: C.ink2, marginTop: E(7), fontWeight: 500, ...ellipsis }}>{sub}</div>
+          {/* The padding keeps a long name's g and y whole where it is cut short. */}
+          {title && <div style={{ fontSize: E(40), fontWeight: 750, letterSpacing: '-.02em', lineHeight: 1, paddingBottom: E(8), marginBottom: E(-8), ...ellipsis }}>{title}</div>}
+          {sub && <div style={{ fontSize: E(23), color: C.ink2, marginTop: title ? E(7) : 0, fontWeight: 500, ...ellipsis }}>{sub}</div>}
         </div>
       </div>
       {pill}
@@ -71,13 +92,43 @@ export function showPill(m: ShowModel, env: Env, small = false): React.ReactNode
   return <Pill tone="unknown" text="No show scheduled" small={small} />;
 }
 
-export function headerSub(env: Env): string {
+/** The line under the show's name: today's date, the show's hours, the
+ *  family's own words, or nothing. Hours fall back to the date until the
+ *  player's schedule says what they are. */
+export function headerSub(env: Env, m?: ShowModel | null): string {
+  const kind = env.brand?.subtitle ?? 'date';
+  if (kind === 'none') return '';
+  if (kind === 'words') return env.brand?.tagline ?? '';
+  if (kind === 'hours') {
+    // One of them, so the line is not cut short beside a wide logo.
+    const hours = m?.cadence ?? m?.through;
+    if (hours) return hours;
+  }
   try {
     const day = new Intl.DateTimeFormat(env.locale, { timeZone: env.timeZone, weekday: 'long', month: 'short', day: 'numeric' }).format(env.now);
     return `${day} · ${clockText(env.now, env.timeZone, env.locale)}`;
   } catch {
     return '';
   }
+}
+
+/** "Playing now: Pre-show", for a player running something that is not the
+ *  family's main show. */
+export function alsoPlayingText(m: ShowModel): string | null {
+  const a = m.alsoPlaying;
+  if (!a) return null;
+  const what = [a.playlist, a.title].filter(Boolean).join(' · ');
+  return what ? `Playing now: ${what}` : 'Playing something else now';
+}
+
+export function AlsoPlaying({ m, font = 21, style }: { m: ShowModel; font?: number; style?: React.CSSProperties }) {
+  const text = alsoPlayingText(m);
+  if (!text) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: E(10), fontSize: E(font), color: C.ice, fontWeight: 600, minWidth: 0, ...style }}>
+      <Icon name="music" size={E(font + 1)} style={{ flex: 'none' }} /><span style={ellipsis}>{text}</span>
+    </div>
+  );
 }
 
 // ── Covers ──────────────────────────────────────────────────────────────────

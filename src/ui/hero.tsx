@@ -4,7 +4,7 @@ import { clockText, dayText } from '../lib/format';
 import { calendarDaysBetween } from '../lib/format';
 import { untilText } from '../lib/schedule';
 import { Bars, Icon, type IconName } from './icons';
-import { Backdrop, Cover, LiveProgress, LiveSegments, Mosaic, nextList, playingTag, Queue, Segments, Tag, voteLeader, votesText, type Env } from './parts';
+import { AlsoPlaying, Backdrop, Cover, LiveProgress, LiveSegments, Mosaic, nextList, playingTag, Queue, Segments, Tag, voteLeader, votesText, type Env } from './parts';
 import { C, clamp, E, ellipsis, kicker, outline, tv } from './tokens';
 import { STAGE } from './theme';
 
@@ -108,6 +108,7 @@ export function HeroWaiting({ m, env, compact }: { m: ShowModel; env: Env; compa
               {m.through && <div>{m.through}</div>}
             </div>
           )}
+          <AlsoPlaying m={m} font={compact ? 20 : 22} style={{ marginTop: E(compact ? 8 : 12) }} />
         </div>
       </Top>
       <Segments m={m} index={-1} elapsed={0} upcoming font={compact ? 19 : 21} />
@@ -166,6 +167,7 @@ export function HeroMessage({ m, env, compact }: { m: ShowModel; env: Env; compa
           <div style={{ ...kicker, color: tone ? '#ff9b9b' : 'rgba(232,238,255,.42)', fontSize: E(compact ? 19 : 21) }}>{kick}</div>
           <div style={{ fontSize: E(compact ? 46 : 56), fontWeight: 760, letterSpacing: '-.025em', lineHeight: 1.05, marginTop: E(18), whiteSpace: 'pre-line' }}>{big}</div>
           {sub && <div style={{ fontSize: E(compact ? 21 : 24), color: 'rgba(232,238,255,.66)', marginTop: E(16), lineHeight: 1.45 }}>{sub}</div>}
+          {m.reachable && <AlsoPlaying m={m} font={compact ? 20 : 22} style={{ marginTop: E(14) }} />}
         </div>
       </Top>
     </HeroCard>

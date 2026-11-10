@@ -201,15 +201,18 @@ describe('Feed', () => {
       off();
     });
 
-    it('asks Remote Falcon only when connected and the show is playing, every five seconds', async () => {
+    it('asks Remote Falcon only when connected: once for its song list, then every five seconds during the show', async () => {
       const show = fakeShow();
       let asked = 0;
       const requests = () => { asked++; return Promise.resolve({ preferences: { viewerControlEnabled: true } }); };
       const feed = new Feed('http://192.168.0.200', show.fetcher, null, () => now, requests);
       const off = feed.subscribe(() => {});
+      await settle(5_000);
+      expect(asked).toBe(0); // not connected
       feed.setRequests(true);
-      await settle(15_000);
-      expect(asked).toBe(0); // connected, but nothing is playing
+      await settle(60_000);
+      expect(asked).toBe(1); // nothing is playing: the song list, and no more for a while
+      asked = 0;
 
       show.setPlayer(live('2026', 'Youre a Mean One Mr Grinch.fseq'));
       await settle(40_000);
@@ -222,6 +225,32 @@ describe('Feed', () => {
       await settle(25_000);
       expect(asked).toBe(before);
       expect(feed.getState().requests).toBeNull();
+      off();
+    });
+  });
+
+  describe('a main show playlist', () => {
+    const live = (playlistName: string, sequence: string) => ({
+      ...(ST['192.168.0.200'] as object), status_name: 'playing',
+      current_playlist: { playlist: playlistName, index: '1', count: '3' }, current_sequence: sequence, current_song: '',
+      seconds_played: '10', seconds_remaining: '200',
+      scheduler: { status: 'playing', currentPlaylist: { playlistName } },
+    });
+
+    it('holds the picked playlist while the player runs another, and lets go when it is unpicked', async () => {
+      const show = fakeShow();
+      show.setPlayer(live('Pre-show', 'Tune To Sign.fseq'));
+      const feed = new Feed('http://192.168.0.200', show.fetcher, null, () => now);
+      const off = feed.subscribe(() => {});
+      feed.setMainPlaylist('2026');
+      await settle(5_000);
+      expect(feed.getState()).toMatchObject({ showName: '2026', playlistName: '2026', mainPlaylist: '2026', lastShowSequence: '' });
+      expect(show.calls.some((c) => c.url.includes('/api/playlist/Pre-show'))).toBe(false);
+
+      feed.setMainPlaylist('');
+      expect(feed.getState().showName).toBe('Pre-show');
+      await settle(2_000);
+      expect(feed.getState().playlistName).toBe('Pre-show');
       off();
     });
   });

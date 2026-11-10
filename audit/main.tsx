@@ -14,6 +14,12 @@
  * with one waiting, nobody waiting, a voting night); &rf=alone plays a
  * request with Remote Falcon not connected; &rfpanel=new|on|bad shows that
  * part of the settings. &at=<ISO time> sets the clock without Playwright.
+ * Your show: &keep=1 keeps the plugin's settings in the browser, so a name,
+ * logo or controller name set in the panel (&panel=1&keep=1) shows on the
+ * wall opened next; &keep=clear starts over. &main=<playlist> picks the main
+ * show without the panel, and &scenario=pre runs a "Pre-show" playlist
+ * before the show. &sub=hours|words|none&tagline=... sets the line under
+ * the name.
  * Playwright installs the clock (opening night, or Nov 9 for "wait") and runs
  * it forward so the round robin, misses and offline labels happen for real.
  * Not part of the shipped bundle.
@@ -52,7 +58,12 @@ const plugs = new Map<string, { state: string; changed: number }>(
 if (garageMode === 'off') plugs.get(GARAGE_PLUG)!.state = 'off';
 let garageBackAt = 0;
 const idOf = (host: string) => controllersFrom((systems as { systems: FppSystem[] }).systems).find((c) => c.hostname === host)?.id ?? host;
+const KEEP = 'audit-fpp-settings';
+if (q.get('keep') === 'clear') localStorage.removeItem(KEEP);
+const kept = q.get('keep') ? JSON.parse(localStorage.getItem(KEEP) ?? '{}') as Record<string, unknown> : {};
 const fppSettings: Record<string, unknown> = {
+  ...(q.get('main') ? { show: { mainPlaylist: q.get('main') } } : {}),
+  ...kept,
   remoteFalcon: ['request', 'between', 'quiet', 'vote'].includes(q.get('rf') ?? '') || q.get('rfpanel') === 'on',
   outlets: !withPower || q.get('links') === 'none' ? {} : {
     [idOf('player')]: 'switch.show_player_plug',
@@ -136,6 +147,15 @@ function playerStatus(): Record<string, unknown> | null {
     }
     return live;
   }
+  if (scenario === 'pre') {
+    // Half an hour before opening night, a pre-show playlist is running.
+    return {
+      ...idle, status_name: 'playing', status: 1,
+      current_playlist: { playlist: 'Pre-show', index: '1', count: '3' }, current_sequence: 'Tune To Sign.fseq', current_song: '',
+      seconds_played: '20', seconds_remaining: '40',
+      scheduler: { status: 'playing', currentPlaylist: { playlistName: 'Pre-show', scheduledEndTime: at('2026-11-27T17:00:00-06:00') }, nextPlaylist: { playlistName: '2026', scheduledStartTime: at('2026-11-27T17:00:00-06:00') } },
+    };
+  }
   if (scenario === 'done') {
     return { ...idle, scheduler: { status: 'idle', nextPlaylist: { playlistName: '2026', scheduledStartTime: at('2026-11-28T17:00:00-06:00') } } };
   }
@@ -166,6 +186,7 @@ function remoteStatus(ip: string): Record<string, unknown> | null {
     return null;
   }
   if (scenario === 'live') return { ...s, status_name: 'playing', sequence_filename: 'Youre a Mean One Mr Grinch.fseq' };
+  if (scenario === 'pre') return { ...s, status_name: 'playing', sequence_filename: 'Tune To Sign.fseq' };
   return s;
 }
 
@@ -191,7 +212,8 @@ function pluginFetch(id: string, { url, payload }: { url: string; payload?: stri
     if (scenario === 'down') return fail();
     if (u.pathname === '/api/fppd/multiSyncSystems') return json(systems);
     if (u.pathname === '/api/fppd/schedule') return json(schedule);
-    if (u.pathname.startsWith('/api/playlist/')) return json(playlist);
+    if (u.pathname === '/api/playlists') return json(['2026', REQUEST_PLAYLIST, 'Pre-show', 'Test']);
+    if (u.pathname.startsWith('/api/playlist/')) return decodeURIComponent(u.pathname).endsWith('/2026') ? json(playlist) : json({ name: 'Pre-show', mainPlaylist: [{ type: 'sequence', enabled: 1, sequenceName: 'Tune To Sign.fseq', duration: 60 }] });
     if (u.pathname === '/api/plugin/remote-falcon/settings/remotePlaylist') return json({ status: 'OK', remotePlaylist: REQUEST_PLAYLIST });
     if (u.pathname.startsWith('/api/media/')) {
       const file = decodeURIComponent(u.pathname.slice('/api/media/'.length).replace(/\/meta$/, ''));
@@ -217,7 +239,13 @@ window.__HS_SDK__ = {
   INPUT_CLASS: 'hs-input',
   getPluginSettings: (id: string) => (id === 'fpp' ? structuredClone(fppSettings)
     : id === 'home-assistant' && withPower && haMode !== 'none' ? { haUrl: 'http://homeassistant.local:8123' } : {}),
-  setPluginSettings: async (_id: string, updates: Record<string, unknown>) => { Object.assign(fppSettings, updates); return { ok: true }; },
+  setPluginSettings: async (_id: string, updates: Record<string, unknown>) => {
+    // The hub keeps a plugin's settings in 32 KB, and so does this.
+    if (JSON.stringify({ ...fppSettings, ...updates }).length > 32 * 1024) return { ok: false, error: 'Settings payload too large' };
+    Object.assign(fppSettings, updates);
+    if (q.get('keep')) localStorage.setItem(KEEP, JSON.stringify({ show: fppSettings.show, controllers: fppSettings.controllers }));
+    return { ok: true };
+  },
 } as unknown as NonNullable<Window['__HS_SDK__']>;
 
 const wall = document.getElementById('wall')!;
@@ -228,7 +256,10 @@ root.style.width = '100%';
 root.style.height = '100%';
 
 const style = { fontSize: 16, fontFamily: 'inter', textColor: '#f4f6ff', backgroundColor: 'rgba(7, 9, 20, 0.5)', borderRadius: 0, padding: 24, opacity: 1, backdropBlur: 26 };
-const config = { playerAddress: '192.168.0.200', view, theme: q.get('theme') ?? undefined, songNames: 'tags', covers: true, hiddenControllers: [] };
+const config = {
+  playerAddress: q.get('player') ?? '192.168.0.200', view, theme: q.get('theme') ?? undefined, songNames: 'tags', covers: true, hiddenControllers: [],
+  subtitle: q.get('sub') ?? undefined, tagline: q.get('tagline') ?? undefined,
+};
 // The hub's secret store, for the settings panel's Connect and Disconnect.
 const realFetch = window.fetch.bind(window);
 window.fetch = (input, init) => (String(input).startsWith('/api/plugins/secrets/')
@@ -238,7 +269,12 @@ window.fetch = (input, init) => (String(input).startsWith('/api/plugins/secrets/
 if (q.get('panel') === '1' || rfPanel) {
   // The editor's settings panel, at its real width.
   wall.style.cssText = 'width:300px;padding:16px;background:#0e0e0f;border:1px solid #262626;border-radius:10px;font:13px/1.4 Inter,system-ui;color:#e5e5e5;margin:20px';
-  createRoot(root).render(<ConfigSection config={config} onChange={() => {}} moduleId="m" screenId="s" />);
+  // Holds the module's own settings the way the editor does.
+  const Panel = () => {
+    const [cfg, setCfg] = React.useState<Record<string, unknown>>(config);
+    return <ConfigSection config={cfg} onChange={(u) => setCfg((c) => ({ ...c, ...u }))} moduleId="m" screenId="s" />;
+  };
+  createRoot(root).render(<Panel />);
 } else {
   createRoot(root).render(<LightShow config={config} style={style} />);
 }

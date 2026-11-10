@@ -11,12 +11,16 @@
  * On a request night the player names Remote Falcon's playlist as current
  * while a request plays. The feed keeps hold of the show's own playlist
  * through that, and, when Remote Falcon is connected, asks it who is waiting.
+ * Off the show it is asked now and then, for its song names and covers.
+ *
+ * A family can pick one playlist as their show. Then that is the playlist
+ * the feed holds, whatever else the player runs.
  */
 import type { FppPlaylist, FppSchedule, FppStatus, FppSystem } from '../lib/fpp-types';
 import { applyCheck, emptyReading, OFFLINE_AFTER_MISSES, type Reading } from '../lib/health';
 import {
   cacheTtlFor, EDGE_EVERY_MS, hostBaseUrl, playerEveryMs, playerNextMs, remoteRoundMs,
-  PLAYLIST_EVERY_MS, REMOTE_IN_FLIGHT, REQUESTS_EVERY_MS, REQUEST_PLAYLIST_EVERY_MS, REMOTE_MISS_AFTER_MS, RETRY_AFTER_MISS_MS, SCHEDULE_EVERY_MS, SYSTEMS_EVERY_MS,
+  PLAYLIST_EVERY_MS, REMOTE_IN_FLIGHT, REQUESTS_EVERY_MS, REQUESTS_IDLE_EVERY_MS, REQUEST_PLAYLIST_EVERY_MS, REMOTE_MISS_AFTER_MS, RETRY_AFTER_MISS_MS, SCHEDULE_EVERY_MS, SYSTEMS_EVERY_MS,
 } from '../lib/poll';
 import { showPlaylistName, type RfShow } from '../lib/remote-falcon';
 import { coverSearchTerm, pickCover, tagsFromMeta, type ItunesTrack, type SongNames, type SongTags } from '../lib/songs';
@@ -42,6 +46,10 @@ export interface FeedState {
   remotes: Readonly<Record<string, Reading>>;
   /** The show's own playlist, held through a slotted-in request. */
   showName: string;
+  /** The playlist the family picked as their show; '' follows the schedule. */
+  mainPlaylist: string;
+  /** The playlist Remote Falcon's player plugin inserts requests from. */
+  requestPlaylist: string;
   /** The last sequence the player played from the show playlist, which is
    *  where the show picks up after a request. */
   lastShowSequence: string;
@@ -49,7 +57,8 @@ export interface FeedState {
   playlistName: string;
   playlist: FppPlaylist | null;
   /** Remote Falcon's last answer and when it came; null when not connected
-   *  or nothing has been heard. */
+   *  or nothing has been heard. Its song list is good at any age; who is
+   *  waiting is only good fresh (the model decides). */
   requests: { show: RfShow; at: number } | null;
   schedule: FppSchedule | null;
   /** Media file → tags (null: looked, none found). */
@@ -65,6 +74,8 @@ export interface CoverWant {
 const META_TTL_MS = 7 * 24 * 3600_000;
 const COVER_TTL_MS = 30 * 24 * 3600_000;
 const RETRY_MS = 30_000;
+/** Remote Falcon not answering before the show is no hurry. */
+const IDLE_RETRY_MS = 5 * 60_000;
 const EXTRAS_IN_FLIGHT = 2;
 
 const isPlaying = (s: FppStatus | null | undefined) => {
@@ -85,8 +96,6 @@ export class Feed {
   private timer: ReturnType<typeof setInterval> | null = null;
   private due = { player: 0, systems: 0, schedule: 0, playlist: 0, remote: 0, requestPlaylist: 0, requests: 0 };
   private busy = { player: false, systems: false, schedule: false, playlist: false, requestPlaylist: false, requests: false };
-  /** The playlist Remote Falcon's player plugin inserts requests from. */
-  private requestPlaylist = '';
   private requestsOn = false;
   /** The next player answer, or Remote Falcon answer, must not be the hub's
    *  cached copy: something just changed. */
@@ -115,7 +124,7 @@ export class Feed {
   ) {
     this.state = {
       base, player: emptyReading(), playerFetchedAt: null, systems: null, remotes: {},
-      showName: '', lastShowSequence: '', playlistName: '', playlist: null, requests: null, schedule: null, meta: {}, covers: {},
+      showName: '', mainPlaylist: '', requestPlaylist: '', lastShowSequence: '', playlistName: '', playlist: null, requests: null, schedule: null, meta: {}, covers: {},
     };
   }
 
@@ -143,6 +152,14 @@ export class Feed {
     this.requestsOn = on;
     this.due.requests = 0;
     if (!on && this.state.requests) this.set({ requests: null });
+  }
+
+  /** The playlist the family picked as their show ('' follows the schedule). */
+  setMainPlaylist(name: string): void {
+    if (name === this.state.mainPlaylist) return;
+    const showName = name || showPlaylistName(this.state.player.status, this.state.requestPlaylist, '');
+    this.due.playlist = 0;
+    this.set({ mainPlaylist: name, showName, lastShowSequence: showName === this.state.showName ? this.state.lastShowSequence : '' });
   }
 
   /** Songs a view wants names for (current, next, first up, the cover grid). */
@@ -231,7 +248,7 @@ export class Feed {
     if (!asleep && !this.busy.schedule && now >= this.due.schedule) this.pollSchedule();
 
     if (!this.busy.requestPlaylist && now >= this.due.requestPlaylist) this.pollRequestPlaylist();
-    if (this.requestsOn && this.requestsFetcher && live && !asleep && !this.busy.requests && now >= this.due.requests) this.pollRequests();
+    if (this.requestsOn && this.requestsFetcher && !asleep && !this.busy.requests && now >= this.due.requests) this.pollRequests(live);
 
     const name = this.state.showName;
     if (name && !this.busy.playlist && (name !== this.state.playlistName || now >= this.due.playlist)) {
@@ -293,7 +310,7 @@ export class Feed {
           this.due.requests = 0;
           this.fresh.requests = true;
         }
-        const showName = showPlaylistName(s, this.requestPlaylist, this.state.showName);
+        const showName = this.state.mainPlaylist || showPlaylistName(s, this.state.requestPlaylist, this.state.showName);
         const onShow = isPlaying(s) && !!showName && s.current_playlist?.playlist === showName && !!s.current_sequence;
         this.set({
           player: applyCheck(this.state.player, { ok: true, status: s }, at, false), playerFetchedAt: at, showName,
@@ -353,24 +370,33 @@ export class Feed {
     this.fetcher(this.url('/api/plugin/remote-falcon/settings/remotePlaylist'), cacheTtlFor(REQUEST_PLAYLIST_EVERY_MS))
       .then((data) => {
         const name = (data as { remotePlaylist?: unknown })?.remotePlaylist;
-        this.requestPlaylist = typeof name === 'string' ? name : '';
+        this.setRequestPlaylist(typeof name === 'string' ? name : '');
       })
-      .catch(() => { this.requestPlaylist = ''; })
+      .catch(() => this.setRequestPlaylist(''))
       .finally(() => { this.busy.requestPlaylist = false; });
   }
 
-  private pollRequests(): void {
+  private setRequestPlaylist(name: string): void {
+    if (name !== this.state.requestPlaylist) this.set({ requestPlaylist: name });
+  }
+
+  /** Every few seconds during the show, for who is waiting. Now and then
+   *  the rest of the time, for the song names and covers. */
+  private pollRequests(live: boolean): void {
     this.busy.requests = true;
     const fresh = this.fresh.requests;
     this.fresh.requests = false;
-    this.requestsFetcher!(fresh ? 0 : cacheTtlFor(REQUESTS_EVERY_MS))
+    // The show may start while this is out, so the next ask goes by how
+    // things stand when the answer lands.
+    const liveNow = () => isPlaying(this.state.player.status);
+    this.requestsFetcher!(fresh ? 0 : cacheTtlFor(live ? REQUESTS_EVERY_MS : REQUESTS_IDLE_EVERY_MS))
       .then((data) => {
         if (!data || typeof data !== 'object') throw new Error('no show');
         if (this.requestsOn) this.set({ requests: { show: data as RfShow, at: this.now() } });
-        this.due.requests = this.now() + REQUESTS_EVERY_MS;
+        this.due.requests = this.now() + (liveNow() ? REQUESTS_EVERY_MS : REQUESTS_IDLE_EVERY_MS);
       })
       // The last answer stays until it is too old to trust (the model decides).
-      .catch(() => { this.due.requests = this.now() + RETRY_MS; })
+      .catch(() => { this.due.requests = this.now() + (liveNow() ? RETRY_MS : IDLE_RETRY_MS); })
       .finally(() => { this.busy.requests = false; });
   }
 

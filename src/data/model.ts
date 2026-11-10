@@ -4,9 +4,10 @@ import type { FppStatus } from '../lib/fpp-types';
 import { num } from '../lib/format';
 import { healthOf, OFFLINE_AFTER_MISSES, summarize, type Health, type OutletPower, type Reading, type Summary } from '../lib/health';
 import { REQUESTS_STALE_MS } from '../lib/poll';
-import { rfView, sequenceKey, type RfSong } from '../lib/remote-falcon';
-import { cadenceText, entryFor, showPhase, throughText, type ShowPhase } from '../lib/schedule';
-import { coverSearchTerm, songNames, splitExtra, type SongNameSource, type SongNames } from '../lib/songs';
+import { rfView, sequenceKey, type RfShow, type RfSong, type RfView } from '../lib/remote-falcon';
+import { cadenceText, entryFor, isRunning, showPhase, throughText, type ShowPhase } from '../lib/schedule';
+import { arrangeControllers, type ControllerPrefs } from '../lib/show';
+import { albumLine, coverSearchTerm, namesFromFile, songNames, splitExtra, type SongNameSource, type SongNames } from '../lib/songs';
 import { controllersFrom, type Controller } from '../lib/systems';
 import { currentSongIndex, playlistSongs, roundPosition, type PlaylistSong, type RoundPosition } from '../lib/timeline';
 import type { FeedState } from './feed';
@@ -21,6 +22,8 @@ export interface ModelOptions {
   formatNumber?: (n: number) => string;
   /** Controller id → its linked outlet, for controllers that have one. */
   power?: Readonly<Record<string, OutletPower>>;
+  /** The names and order the family gave the controllers. */
+  controllers?: ControllerPrefs;
 }
 
 export interface SongView {
@@ -92,15 +95,31 @@ export interface ShowModel {
   cadence: string | null;
   through: string | null;
   volume: number | null;
+  /** With a main show picked: what the player is running that is not it. */
+  alsoPlaying: { playlist: string; title: string } | null;
 }
 
 const base = (f: string | undefined) => (f ?? '').split('/').pop() ?? '';
 
-function songView(state: FeedState, opts: ModelOptions, song: PlaylistSong, index: number): SongView {
+/** Remote Falcon's answer read once, however often the model is rebuilt. */
+let read: { show: RfShow; view: RfView } | null = null;
+function viewOf(show: RfShow): RfView {
+  if (read?.show !== show) read = { show, view: rfView(show) };
+  return read.view;
+}
+
+/** A show song. The name and cover the family set in Remote Falcon win,
+ *  because they are the ones the family picked by hand. */
+function songView(state: FeedState, opts: ModelOptions, song: PlaylistSong, index: number, catalog: RfView | null): SongView {
   const tags = song.media ? state.meta[song.media] ?? undefined : undefined;
-  const names = songNames(song.sequence, song.media, tags, opts.songNames);
-  const cover = opts.covers ? state.covers[coverSearchTerm(names)] ?? null : null;
-  return { song, names, cover, index };
+  let names = songNames(song.sequence, song.media, tags, opts.songNames);
+  const known = catalog?.find(song.sequence);
+  if (known) {
+    const { main, extra } = splitExtra(known.title);
+    names = { title: main, extra, artist: known.artist || names.artist, album: albumLine(known.title, tags?.album) };
+  }
+  const looked = opts.covers ? state.covers[coverSearchTerm(names)] ?? null : null;
+  return known?.image ? { song, names, cover: known.image, index, ownCover: true } : { song, names, cover: looked, index };
 }
 
 /** A song as Remote Falcon names it. Its own cover wins; without one the
@@ -118,7 +137,8 @@ function requestView(state: FeedState, opts: ModelOptions, song: RfSong, extra: 
 export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
   const status = state.player.status;
   const reachable = state.player.misses < OFFLINE_AFTER_MISSES && status !== null;
-  const phase = showPhase(status, state.schedule, opts.now, opts.timeZone);
+  const main = state.mainPlaylist ? { name: state.mainPlaylist, requestPlaylist: state.requestPlaylist } : null;
+  const phase = showPhase(status, state.schedule, opts.now, opts.timeZone, main);
   const songs = playlistSongs(state.playlist);
   const playing = phase.kind === 'playing';
 
@@ -126,9 +146,11 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
   let elapsed = 0;
   let duration = 0;
   let index = -1;
-  // Remote Falcon's answer counts only during the show and while it is fresh.
+  // Remote Falcon's song list is good at any age. Who is waiting counts only
+  // during the show and while the answer is fresh.
   const heard = state.requests;
-  const rf = playing && heard && opts.now - heard.at < REQUESTS_STALE_MS ? rfView(heard.show) : null;
+  const catalog = heard ? viewOf(heard.show) : null;
+  const rf = playing && heard && opts.now - heard.at < REQUESTS_STALE_MS ? catalog : null;
   // The player is on another playlist than the show's: a request slotted in.
   const playingList = status?.current_playlist?.playlist ?? '';
   const requested = playing && !!state.showName && !!playingList && playingList !== state.showName;
@@ -144,7 +166,7 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
       const song: PlaylistSong = index >= 0
         ? songs[index]
         : { sequence: base(status.current_sequence), media: base(status.current_song), duration };
-      if (song.sequence || song.media) current = songView(state, opts, song, index);
+      if (song.sequence || song.media) current = songView(state, opts, song, index, catalog);
       if (!duration) duration = song.duration;
     }
   }
@@ -166,7 +188,7 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
     const out: SongView[] = [];
     for (let i = 0; i < Math.min(count, songs.length); i++) {
       const at = (from + i) % songs.length;
-      out.push(songView(state, opts, songs[at], at));
+      out.push(songView(state, opts, songs[at], at, catalog));
     }
     return out;
   };
@@ -184,7 +206,8 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
     standings: rf ? rf.standings.slice(0, 3).map((s) => requestView(state, opts, s, { votes: s.votes })) : [],
   };
 
-  const controllers = controllersFrom(state.systems ?? [], opts.hidden, opts.formatNumber);
+  const found = controllersFrom(state.systems ?? [], opts.hidden, opts.formatNumber);
+  const controllers = opts.controllers ? arrangeControllers(found, opts.controllers) : found;
   const readings = new Map<string, Reading>();
   const health = new Map<string, Health>();
   const views: ControllerView[] = controllers.map((c) => {
@@ -224,6 +247,9 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
     cadence: cadenceText(entry, opts.locale),
     through: throughText(entry, opts.locale),
     volume: typeof status?.volume === 'number' ? status.volume : null,
+    alsoPlaying: main && !playing && isRunning(status)
+      ? { playlist: playingList, title: namesFromFile(status?.current_sequence || status?.current_song || '').title }
+      : null,
   };
 }
 

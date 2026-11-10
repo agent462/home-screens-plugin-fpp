@@ -16,7 +16,9 @@
     "theme": "see-through",
     "songNames": "tags",
     "covers": true,
-    "hiddenControllers": []
+    "hiddenControllers": [],
+    "subtitle": "date",
+    "tagline": ""
   },
 
   "defaultSize": { "w": 1080, "h": 1920 },
@@ -68,6 +70,18 @@
         "type": "array",
         "title": "Controllers to leave out",
         "items": { "type": "string" }
+      },
+      "subtitle": {
+        "type": "string",
+        "title": "Under the name",
+        "description": "The small line under your show's name.",
+        "enum": ["date", "hours", "words", "none"],
+        "enumNames": ["Today's date and time", "When the show runs", "Your own words", "Nothing"]
+      },
+      "tagline": {
+        "type": "string",
+        "title": "Your own words",
+        "ui:widget": "text"
       }
     }
   },
@@ -75,6 +89,16 @@
   "settingsSchema": {
     "type": "object",
     "properties": {
+      "show": {
+        "type": "object",
+        "title": "Your show",
+        "description": "Your show's name, logo and main playlist. Set these in a Light Show module's settings, under Your show."
+      },
+      "controllers": {
+        "type": "object",
+        "title": "Controller names and order",
+        "description": "What each controller is called and where it sits. Set these in a Light Show module's settings, under Controllers."
+      },
       "outlets": {
         "type": "object",
         "title": "Controller outlets",

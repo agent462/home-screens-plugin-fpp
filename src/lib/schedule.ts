@@ -13,6 +13,9 @@ export type ShowPhase =
 
 const PLAYING = new Set(['playing', 'paused', 'stopping gracefully', 'stopping gracefully after loop']);
 
+/** The player is running something (a show, or anything else). */
+export const isRunning = (status: FppStatus | null | undefined) => PLAYING.has((status?.status_name ?? '').toLowerCase());
+
 interface ZoneParts {
   /** YYYYMMDD as a number, comparable with FPP's `*DateInt`. */
   dateInt: number;
@@ -71,8 +74,25 @@ const dateInt = (iso: string | undefined): number | null => {
   return m ? Number(`${m[1]}${m[2]}${m[3]}`) : null;
 };
 
-const playlistEntries = (schedule: FppSchedule | null | undefined) =>
-  (schedule?.entries ?? []).filter((e) => e.enabled !== 0 && !!e.playlist && (e.type ?? 'playlist') === 'playlist');
+/** The playlist a family picked as their show, for a player that runs others
+ *  too (a pre-show, a test list). */
+export interface MainShow {
+  name: string;
+  /** The playlist Remote Falcon slots requests in from, '' when unknown. */
+  requestPlaylist: string;
+}
+
+/** Is the player on the main show? A request slotted into it still counts. */
+export function onMainShow(status: FppStatus | null | undefined, main: MainShow): boolean {
+  const current = status?.current_playlist?.playlist ?? '';
+  if (!current) return false;
+  if (current === main.name) return true;
+  const scheduled = status?.scheduler?.currentPlaylist?.playlistName ?? '';
+  return current === main.requestPlaylist && (!scheduled || scheduled === main.name);
+}
+
+const playlistEntries = (schedule: FppSchedule | null | undefined, only = '') =>
+  (schedule?.entries ?? []).filter((e) => e.enabled !== 0 && !!e.playlist && (e.type ?? 'playlist') === 'playlist' && (!only || e.playlist === only));
 
 function inRange(e: FppScheduleEntry, d: number): boolean {
   const a = dateInt(e.startDate);
@@ -82,10 +102,10 @@ function inRange(e: FppScheduleEntry, d: number): boolean {
 
 /** A playlist window that ended earlier today (or, for one that runs past
  *  midnight, one that started yesterday and ended this morning). */
-export function showEndedToday(schedule: FppSchedule | null | undefined, nowMs: number, timeZone: string): FppScheduleEntry | null {
+export function showEndedToday(schedule: FppSchedule | null | undefined, nowMs: number, timeZone: string, only = ''): FppScheduleEntry | null {
   const now = zoneParts(nowMs, timeZone);
   const yesterday = zoneParts(nowMs - 86400000, timeZone);
-  for (const e of playlistEntries(schedule)) {
+  for (const e of playlistEntries(schedule, only)) {
     const start = hm(e.startTime);
     const end = hm(e.endTime);
     if (start === null || end === null) continue; // sunset-relative times: the windows say it
@@ -99,31 +119,36 @@ export function showEndedToday(schedule: FppSchedule | null | undefined, nowMs: 
   return null;
 }
 
-function nextWindow(status: FppStatus | null | undefined, schedule: FppSchedule | null | undefined, nowMs: number): { at: number; playlist: string } | null {
+function nextWindow(status: FppStatus | null | undefined, schedule: FppSchedule | null | undefined, nowMs: number, only = ''): { at: number; playlist: string } | null {
   const np = status?.scheduler?.nextPlaylist;
-  if (np?.scheduledStartTime && np.scheduledStartTime * 1000 > nowMs) {
+  if (np?.scheduledStartTime && np.scheduledStartTime * 1000 > nowMs && (!only || np.playlistName === only)) {
     return { at: np.scheduledStartTime * 1000, playlist: np.playlistName ?? '' };
   }
   const item = (schedule?.items ?? [])
-    .filter((i) => i.command === 'Start Playlist' && (i.startTime ?? 0) * 1000 > nowMs)
+    .filter((i) => i.command === 'Start Playlist' && (i.startTime ?? 0) * 1000 > nowMs && (!only || i.args?.[0] === only))
     .sort((a, b) => (a.startTime ?? 0) - (b.startTime ?? 0))[0];
   return item ? { at: (item.startTime ?? 0) * 1000, playlist: item.args?.[0] ?? '' } : null;
 }
 
-export function showPhase(status: FppStatus | null | undefined, schedule: FppSchedule | null | undefined, nowMs: number, timeZone: string): ShowPhase {
+/**
+ * Where the show is. With a main show picked, only that playlist counts:
+ * while the player runs anything else the show is waiting, done or idle.
+ */
+export function showPhase(status: FppStatus | null | undefined, schedule: FppSchedule | null | undefined, nowMs: number, timeZone: string, main?: MainShow | null): ShowPhase {
   const name = (status?.status_name ?? '').toLowerCase();
-  if (PLAYING.has(name)) {
+  const only = main?.name ?? '';
+  if (PLAYING.has(name) && (!main || onMainShow(status, main))) {
     const cp = status?.scheduler?.currentPlaylist;
-    let endsAt = cp?.scheduledEndTime ? cp.scheduledEndTime * 1000 : null;
+    let endsAt = cp?.scheduledEndTime && (!only || cp.playlistName === only) ? cp.scheduledEndTime * 1000 : null;
     if (!endsAt) {
-      const live = (schedule?.items ?? []).find((i) => i.command === 'Start Playlist'
+      const live = (schedule?.items ?? []).find((i) => i.command === 'Start Playlist' && (!only || i.args?.[0] === only)
         && (i.startTime ?? 0) * 1000 <= nowMs && (i.endTime ?? 0) * 1000 > nowMs);
       endsAt = live?.endTime ? live.endTime * 1000 : null;
     }
-    return { kind: 'playing', paused: name === 'paused', endsAt, playlist: status?.current_playlist?.playlist ?? cp?.playlistName ?? '' };
+    return { kind: 'playing', paused: name === 'paused', endsAt, playlist: only || (status?.current_playlist?.playlist ?? cp?.playlistName ?? '') };
   }
-  const next = nextWindow(status, schedule, nowMs);
-  const ended = showEndedToday(schedule, nowMs, timeZone);
+  const next = nextWindow(status, schedule, nowMs, only);
+  const ended = showEndedToday(schedule, nowMs, timeZone, only);
   if (ended && (!next || calendarDaysBetween(nowMs, next.at, timeZone) >= 1)) {
     return { kind: 'done', nextAt: next?.at ?? null, playlist: ended.playlist ?? '' };
   }

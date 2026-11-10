@@ -3,9 +3,10 @@ import type { ControllerView, ShowModel } from '../data/model';
 import { namesSentence } from '../lib/health';
 import { Hero, HeroMessage, nextCount, nextDayWords } from './hero';
 import { useNow } from './hooks';
-import { Bars, BrandMark, Icon } from './icons';
+import { DEFAULT_TITLE } from '../lib/show';
+import { Bars, Icon } from './icons';
 import {
-  Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Env,
+  AlsoPlaying, alsoPlayingText, Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, Logo, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Brand, type Env,
 } from './parts';
 import { C, clamp, E, ellipsis, kicker, outline, tnum, tv } from './tokens';
 
@@ -79,7 +80,7 @@ export function ShowView({ m, env, o, onOpen }: ViewProps) {
         display: 'grid', gridTemplateColumns: `${E(800)} minmax(0, 1fr)`, gridTemplateRows: 'auto minmax(0, 1fr)',
         columnGap: E(32), rowGap: E(20), padding: `${E(12)} ${E(20)}`, height: '100%', boxSizing: 'border-box',
       }}>
-        <div style={{ gridColumn: '1 / -1' }}><Header sub={headerSub(env)} pill={showPill(m, env)} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Header env={env} sub={headerSub(env, m)} pill={showPill(m, env)} /></div>
         <div style={{ ...col, gap: E(18) }}>
           <Hero m={m} env={env} compact />
           <StatTiles m={m} env={env} style={{ gap: E(14) }} />
@@ -93,7 +94,7 @@ export function ShowView({ m, env, o, onOpen }: ViewProps) {
   }
   return (
     <div style={{ ...col, gap: E(22), padding: `${E(18)} ${E(20)} ${E(16)}`, height: '100%', boxSizing: 'border-box' }}>
-      <Header sub={headerSub(env)} pill={showPill(m, env)} />
+      <Header env={env} sub={headerSub(env, m)} pill={showPill(m, env)} />
       <Hero m={m} env={env} />
       <StatTiles m={m} env={env} />
       <SectionHead />
@@ -145,7 +146,7 @@ function PlayerMeta({ m, big }: { m: ShowModel; big: number }) {
 
 export function PlayerView({ m, env, o }: ViewProps) {
   const playing = m.reachable && m.phase.kind === 'playing';
-  const header = <Header sub={headerSub(env)} pill={showPill(m, env)} />;
+  const header = <Header env={env} sub={headerSub(env, m)} pill={showPill(m, env)} />;
   if (!playing) {
     // Before or after the show the player view is the next show, big.
     if (m.reachable && m.phase.kind === 'waiting') {
@@ -157,6 +158,7 @@ export function PlayerView({ m, env, o }: ViewProps) {
           <div style={{ fontSize: E(72), fontWeight: 760, letterSpacing: '-.025em', lineHeight: 1.05, marginTop: E(14) }}>{nextDayWords(at, env).map((w, i) => <div key={i}>{w}</div>)}</div>
           <div style={{ fontSize: E(38), fontWeight: 650, color: C.gold, marginTop: E(14) }}>{nextCount(at, env)}</div>
           {(m.cadence || m.through) && <div style={{ fontSize: E(26), color: 'rgba(232,238,255,.66)', marginTop: E(16), lineHeight: 1.45 }}>{m.cadence && <div>{m.cadence}</div>}{m.through && <div>{m.through}</div>}</div>}
+          <AlsoPlaying m={m} font={24} style={{ marginTop: E(16) }} />
           <div style={{ marginTop: E(34) }}><Segments m={m} index={-1} elapsed={0} upcoming /></div>
         </div>
       );
@@ -226,7 +228,7 @@ export function ControllersView({ m, env, o, onOpen }: ViewProps) {
   const landscape = o === 'landscape';
   return (
     <div style={{ ...col, gap: E(landscape ? 20 : 22), padding: landscape ? `${E(12)} ${E(20)}` : `${E(18)} ${E(20)} ${E(16)}`, height: '100%', boxSizing: 'border-box' }}>
-      <Header sub={m.controllers.length ? parts.join(' · ') : headerSub(env)} pill={pill} />
+      <Header env={env} sub={m.controllers.length ? parts.join(' · ') : headerSub(env, m)} pill={pill} />
       {m.controllers.length
         ? <CardGrid items={m.controllers} env={env} onOpen={onOpen} cols={landscape ? 4 : 2} minRows={landscape ? 5 : 10} gap={14} large />
         : <NoControllers m={m} />}
@@ -276,7 +278,8 @@ export function StripView({ m, env }: ViewProps) {
       <Mosaic songs={m.grid} size={E(164)} gap={E(4)} radius={E(22)} />
       {info(<span style={{ color: C.ice }}>Next show</span>, nextDayWords(m.phase.nextAt, env).join(' ').replace(/,$/, ''),
         <span style={{ color: C.gold }}>{nextCount(m.phase.nextAt, env)}</span>,
-        m.songs.length ? <div style={{ fontSize: E(19), color: tv('ink2', 'rgba(232,238,255,.66)'), marginTop: E(12), fontWeight: 550 }}>{playlistWords(m.playlistName)} · {m.songs.length} songs · {Math.round(m.songs.reduce((t, x) => t + x.duration, 0) / 60)} min</div> : null)}
+        m.alsoPlaying ? <AlsoPlaying m={m} font={19} style={{ marginTop: E(12) }} />
+          : m.songs.length ? <div style={{ fontSize: E(19), color: tv('ink2', 'rgba(232,238,255,.66)'), marginTop: E(12), fontWeight: 550 }}>{playlistWords(m.playlistName)} · {m.songs.length} songs · {Math.round(m.songs.reduce((t, x) => t + x.duration, 0) / 60)} min</div> : null)}
       {side(count, off ? `${listNames(s.offlineNames)} offline` : 'Controllers ready', off ? 'bad' : 'ok', warn)}
     </>);
   }
@@ -292,11 +295,11 @@ export function StripView({ m, env }: ViewProps) {
       {tile('moon')}
       {info(<span style={{ color: tv('ink3', 'rgba(232,238,255,.42)') }}>Done for tonight</span>,
         m.phase.nextAt ? `Back ${nextDayWords(m.phase.nextAt, env).join(' ').toLowerCase().replace(/,$/, '')} at ${new Intl.DateTimeFormat(env.locale, { timeZone: env.timeZone, hour: 'numeric', minute: '2-digit' }).format(m.phase.nextAt)}` : 'That was the last show',
-        <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>{m.cadence ?? ''}</span>)}
+        <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>{alsoPlayingText(m) ?? m.cadence ?? ''}</span>)}
       {side(count, 'Controllers online', off ? 'bad' : 'ok')}
     </>);
   }
-  return wrap(<>{tile('moon')}{info(<span style={{ color: tv('ink3', 'rgba(232,238,255,.42)') }}>No show scheduled</span>, 'The player is on and waiting', <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>Nothing on its schedule</span>)}{side(count, 'Controllers online', off ? 'bad' : 'ok')}</>);
+  return wrap(<>{tile('moon')}{info(<span style={{ color: tv('ink3', 'rgba(232,238,255,.42)') }}>No show scheduled</span>, 'The player is on and waiting', <span style={{ color: tv('ink2', 'rgba(232,238,255,.66)') }}>{alsoPlayingText(m) ?? 'Nothing on its schedule'}</span>)}{side(count, 'Controllers online', off ? 'bad' : 'ok')}</>);
 }
 
 function StripBar({ m }: { m: ShowModel }) {
@@ -325,14 +328,15 @@ const fmt = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.flo
 
 // ── Not set up yet ──────────────────────────────────────────────────────────
 
-export function SetupView({ view }: { view: ViewName }) {
+export function SetupView({ view, brand }: { view: ViewName; brand?: Brand }) {
   const strip = view === 'strip';
+  const title = brand ? brand.title : DEFAULT_TITLE;
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: strip ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: E(strip ? 28 : 30), textAlign: strip ? 'left' : 'center', padding: E(40), boxSizing: 'border-box' }}>
-      <BrandMark width={E(strip ? 150 : 220)} />
+      <Logo brand={brand} size={strip ? 110 : 150} mark={strip ? 150 : 220} />
       <div style={{ maxWidth: E(760) }}>
-        <div style={{ fontSize: E(strip ? 38 : 56), fontWeight: 760, letterSpacing: '-.02em' }}>Light Show</div>
-        <div style={{ fontSize: E(strip ? 22 : 28), color: C.ink2, marginTop: E(12), lineHeight: 1.4 }}>
+        {title && <div style={{ fontSize: E(strip ? 38 : 56), fontWeight: 760, letterSpacing: '-.02em' }}>{title}</div>}
+        <div style={{ fontSize: E(strip ? 22 : 28), color: C.ink2, marginTop: title ? E(12) : 0, lineHeight: 1.4 }}>
           Add your show player's address in this module's settings, like 192.168.0.200 or fpp.local. The controllers are found through it.
         </div>
       </div>

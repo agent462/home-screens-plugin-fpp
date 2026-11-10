@@ -11,6 +11,9 @@ export const REQUEST_PLAYLIST_EVERY_MS = 30 * 60_000;
 /** Remote Falcon's own list of waiting requests and votes, during the show
  *  only. It asks for no more than one call every 5 seconds. */
 export const REQUESTS_EVERY_MS = 5_000;
+/** Off the show Remote Falcon is only asked for its song list (names and
+ *  covers), which changes when the family edits it. */
+export const REQUESTS_IDLE_EVERY_MS = 30 * 60_000;
 /** After this long without an answer the wall stops showing what Remote
  *  Falcon last said. */
 export const REQUESTS_STALE_MS = 45_000;
