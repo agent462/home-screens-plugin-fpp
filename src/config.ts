@@ -3,7 +3,7 @@ import { RF_SECRET, RF_SHOW_URL } from './lib/remote-falcon';
 import type { SongNameSource } from './lib/songs';
 import type { ViewName } from './ui/views';
 import { readLinks, type Links } from './lib/power';
-import { readControllerPrefs, readShow, SUBTITLES, type ControllerPrefs, type ShowSettings, type Subtitle } from './lib/show';
+import { GROUP_STYLES, readControllerPrefs, readShow, SUBTITLES, type ControllerPrefs, type GroupStyle, type ShowSettings, type Subtitle } from './lib/show';
 import { SEE_THROUGH, themeById } from './ui/theme';
 
 export const PLUGIN_ID = 'fpp';
@@ -20,6 +20,8 @@ export interface LightShowConfig {
   subtitle: Subtitle;
   /** The family's own words for that line. */
   tagline: string;
+  /** How this module shows the controller groups. */
+  groupStyle: GroupStyle;
 }
 
 const VIEWS: ViewName[] = ['show', 'player', 'controllers', 'strip'];
@@ -34,6 +36,7 @@ export function readConfig(raw: Record<string, unknown>): LightShowConfig {
     hiddenControllers: Array.isArray(raw.hiddenControllers) ? raw.hiddenControllers.filter((x): x is string => typeof x === 'string') : [],
     subtitle: SUBTITLES.includes(raw.subtitle as Subtitle) ? (raw.subtitle as Subtitle) : 'date',
     tagline: typeof raw.tagline === 'string' ? raw.tagline.trim().slice(0, 80) : '',
+    groupStyle: GROUP_STYLES.includes(raw.groupStyle as GroupStyle) ? (raw.groupStyle as GroupStyle) : 'headings',
   };
 }
 

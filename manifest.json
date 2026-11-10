@@ -18,7 +18,8 @@
     "covers": true,
     "hiddenControllers": [],
     "subtitle": "date",
-    "tagline": ""
+    "tagline": "",
+    "groupStyle": "headings"
   },
 
   "defaultSize": { "w": 1080, "h": 1920 },
@@ -82,6 +83,13 @@
         "type": "string",
         "title": "Your own words",
         "ui:widget": "text"
+      },
+      "groupStyle": {
+        "type": "string",
+        "title": "Groups on this module",
+        "description": "How the controller groups you made are shown.",
+        "enum": ["headings", "tags", "off"],
+        "enumNames": ["A heading above each group", "A small tag on each group's first card", "Don't show them"]
       }
     }
   },
@@ -96,8 +104,8 @@
       },
       "controllers": {
         "type": "object",
-        "title": "Controller names and order",
-        "description": "What each controller is called and where it sits. Set these in a Light Show module's settings, under Controllers."
+        "title": "Controller names, order and groups",
+        "description": "What each controller is called, where it sits and which group it is in. Set these in a Light Show module's settings, under Controllers."
       },
       "outlets": {
         "type": "object",

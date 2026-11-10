@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ControllerView, ShowModel, SongView } from '../data/model';
 import { clockText, mmss, temperature, uptimeText, type Units } from '../lib/format';
+import { SMALL_PAD, type LargeFit, type SmallFit } from '../lib/groups';
 import { namesSentence } from '../lib/health';
 import { readingNames } from '../lib/sensors';
 import { DEFAULT_TITLE, type Subtitle } from '../lib/show';
@@ -16,6 +17,9 @@ export interface Env {
   locale: string;
   now: number;
   address: string;
+  /** Real pixels per design pixel (the fit scale times the Text size), for
+   *  the few places that measure themselves. 1 when not given. */
+  unit?: number;
   /** The show's own name, logo and the line under them. All optional: a
    *  show nobody named is "Light Show" with the string of bulbs. */
   brand?: Brand;
@@ -437,11 +441,44 @@ function lastHeard(v: ControllerView, env: Env): string {
   return at ? `Last heard ${clockText(at, env.timeZone, env.locale)}` : 'Not heard from yet';
 }
 
-export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: ControllerView; env: Env; onOpen: (id: string) => void; pad?: number[] }) {
+/** How a card carries its group when groups are shown as tags: the group's
+ *  name on its first card, and every other group a shade lighter. */
+export interface GroupMark { tag?: string; alt: boolean }
+
+/** The group's name on the first card of its run. */
+function GroupTag({ text }: { text: string }) {
+  return (
+    <span style={{
+      flex: 'none', fontSize: E(14), fontWeight: 750, letterSpacing: '.12em', textTransform: 'uppercase', color: C.ink2, lineHeight: 1.35,
+      padding: `${E(1)} ${E(9)}`, borderRadius: 999, background: C.glass, ...outline(C.line2),
+    }}>{text}</span>
+  );
+}
+
+/** A card with nothing to say about itself (not off, offline or the player)
+ *  can take the lighter shade of its group. */
+const shaded = (v: ControllerView, mark?: GroupMark): React.CSSProperties | null =>
+  (mark?.alt && !v.health.poweredOff && !v.health.offline && !v.c.isPlayer ? { background: tv('glass2', mix(10.5)) } : null);
+
+interface CardProps {
+  v: ControllerView;
+  env: Env;
+  onOpen: (id: string) => void;
+  /** Padding when the card has all the room it wants. */
+  pad?: number[];
+  /** What the card gives up to fit a short row (see `smallFit`). */
+  fit?: SmallFit;
+  mark?: GroupMark;
+  /** Its place in a grid that places every card by hand. */
+  style?: React.CSSProperties;
+}
+
+export function Card({ v, env, onOpen, pad = [14, 18, 13, 20], fit = 'roomy', mark, style }: CardProps) {
   const s = v.health.sensors;
   const checking = !v.reading.status && !v.health.offline;
+  const padding = fit === 'roomy' ? pad : [SMALL_PAD[fit][0], pad[1], SMALL_PAD[fit][1], pad[3]];
   return (
-    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), padding: pad.map(E).join(' ') }}>
+    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), ...shaded(v, mark), padding: padding.map(E).join(' '), ...style }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
           <Dot v={v} />
@@ -449,9 +486,14 @@ export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: Controller
           {v.c.isPlayer && <Badge />}
           <Label v={v} />
         </div>
-        <div style={{ fontSize: E(19), color: C.ink3, marginTop: E(2), paddingLeft: E(25), fontWeight: 500, ...ellipsis, ...tnum }}>
-          {v.c.address} · {v.c.cape}
-        </div>
+        {/* A short row keeps the name and the readings; the address is in the details. */}
+        {fit !== 'short' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: E(10), fontSize: E(19), marginTop: fit === 'roomy' ? E(2) : 0, paddingLeft: E(25), fontWeight: 500, minWidth: 0, ...tnum }}>
+            {/* The quiet color sits on the text, not the row, so the tag beside it keeps the card's own. */}
+            <span style={{ flex: 1, minWidth: 0, color: C.ink3, ...ellipsis }}>{v.c.address} · {v.c.cape}</span>
+            {mark?.tag && <GroupTag text={mark.tag} />}
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', gap: E(16), paddingLeft: E(25), fontSize: E(20), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap', opacity: v.health.poweredOff ? 0.7 : undefined, ...tnum }}>
         {v.health.offline ? <span>{lastHeard(v, env)}</span>
@@ -473,7 +515,20 @@ function Metric({ icon, text, warn }: { icon: 'therm' | 'zap'; text: string; war
   );
 }
 
-export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView; env: Env; onOpen: (id: string) => void; statFont?: number }) {
+interface LargeCardProps {
+  v: ControllerView;
+  env: Env;
+  onOpen: (id: string) => void;
+  statFont?: number;
+  /** Trimmed padding, and a warning takes the hardware line's place. */
+  fit?: LargeFit;
+  /** A narrow card: the readings wrap onto a second line when they must. */
+  narrow?: boolean;
+  mark?: GroupMark;
+  style?: React.CSSProperties;
+}
+
+export function LargeCard({ v, env, onOpen, statFont = 21, fit = 'roomy', narrow, mark, style }: LargeCardProps) {
   const s = v.health.sensors;
   const up = v.reading.status?.uptimeTotalSeconds;
   const stat = (label: string, value: string, warn = false) => (
@@ -482,8 +537,10 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
     </span>
   );
   const checking = !v.reading.status && !v.health.offline;
+  const tight = fit === 'tight';
+  const warning = v.health.warnings[0];
   return (
-    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), padding: `${E(18)} ${E(22)} ${E(16)} ${E(24)}`, borderRadius: E(24) }}>
+    <div role="button" tabIndex={0} onClick={() => onOpen(v.c.id)} style={{ ...cardFrame(v), ...shaded(v, mark), padding: `${E(tight ? 12 : 18)} ${E(22)} ${E(tight ? 11 : 16)} ${E(24)}`, borderRadius: E(24), ...style }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
           <Dot v={v} />
@@ -491,15 +548,21 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
           {v.c.isPlayer && <Badge />}
           <Label v={v} />
         </div>
-        <div style={{ fontSize: E(20), color: C.ink3, marginTop: E(2), paddingLeft: E(25), display: 'flex', justifyContent: 'space-between', gap: E(16), fontWeight: 500 }}>
-          <span style={ellipsis}>{v.c.cape} · {v.c.boardShort}</span>
-          <span style={{ flex: 'none', ...tnum }}>{v.c.address}</span>
-        </div>
+        {!(tight && warning) && (
+          <div style={{ fontSize: E(narrow ? 18 : 20), marginTop: E(2), paddingLeft: E(25), display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: E(narrow ? 10 : 16), fontWeight: 500 }}>
+            <span style={{ flex: 1, minWidth: 0, color: C.ink3, ...ellipsis }}>{v.c.cape} · {v.c.boardShort}</span>
+            {mark?.tag && <GroupTag text={mark.tag} />}
+            <span style={{ flex: 'none', color: C.ink3, ...tnum }}>{v.c.address}</span>
+          </div>
+        )}
       </div>
-      {v.health.warnings[0] && (
-        <div style={{ paddingLeft: E(25), fontSize: E(19), color: C.warnText, lineHeight: 1.3, ...ellipsis }}>{v.health.warnings[0]}</div>
+      {warning && (
+        <div style={{ paddingLeft: E(25), fontSize: E(19), color: C.warnText, lineHeight: 1.3, ...ellipsis }}>{warning}</div>
       )}
-      <div style={{ display: 'flex', gap: E(statFont < 21 ? 16 : 22), paddingLeft: E(25), fontSize: E(statFont), fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', ...tnum }}>
+      <div style={{
+        display: 'flex', paddingLeft: E(25), fontSize: E(narrow ? 20 : statFont), fontWeight: 650, whiteSpace: 'nowrap', ...tnum,
+        ...(narrow ? { flexWrap: 'wrap', gap: `${E(2)} ${E(16)}` } : { gap: E(statFont < 21 ? 16 : 22), overflow: 'hidden' }),
+      }}>
         {v.health.poweredOff ? <span style={{ color: C.ink2, fontWeight: 600, opacity: 0.7 }}>{lastHeard(v, env)}</span>
           : v.health.offline
           ? v.reading.lastOkAt
@@ -510,6 +573,36 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
              s.board !== null ? stat('Board', `${temperature(s.board, env.units)}°`, s.board >= 75) : null,
              s.lowestSupply !== null ? stat('Power', `${s.lowestSupply.toFixed(1)} V`, s.lowPower) : null]}
       </div>
+    </div>
+  );
+}
+
+// ── Group headings ──────────────────────────────────────────────────────────
+
+/** What a group's heading says on its right: only trouble, never "all fine". */
+export function groupTrouble(items: ControllerView[]): { tone: 'bad' | 'warn'; text: string } | null {
+  const offline = items.filter((v) => v.health.offline && !v.health.poweredOff).length;
+  if (offline) return { tone: 'bad', text: `${offline} offline` };
+  const amber = items.filter((v) => !v.health.offline && !v.health.poweredOff && v.health.tone === 'warn');
+  if (!amber.length) return null;
+  // A controller's own warning is a warning; hot, low power and the like need a look.
+  if (amber.every((v) => v.health.warnings.length > 0)) return { tone: 'warn', text: amber.length === 1 ? '1 warning' : `${amber.length} warnings` };
+  return { tone: 'warn', text: amber.length === 1 ? '1 needs a look' : `${amber.length} need a look` };
+}
+
+/** The slim line that starts a group: its name, a rule, and any trouble. */
+export function GroupHeading({ name, items, hint, style }: { name: string; items: ControllerView[]; hint?: string; style?: React.CSSProperties }) {
+  const t = groupTrouble(items);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: E(14), padding: `0 ${E(4)}`, minWidth: 0, ...style }}>
+      <b style={{ fontSize: E(19), fontWeight: 720, letterSpacing: '.14em', textTransform: 'uppercase', color: C.ink2, minWidth: 0, ...ellipsis }}>{name}</b>
+      <i style={{ flex: 1, height: 1, minWidth: E(12), background: C.line2 }} />
+      {t && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: E(8), flex: 'none', fontSize: E(19), fontWeight: 650, whiteSpace: 'nowrap', color: t.tone === 'bad' ? C.badText : C.warnText }}>
+          <i style={{ width: E(10), height: E(10), borderRadius: '50%', background: 'currentColor' }} />{t.text}
+        </span>
+      )}
+      {hint && <span style={{ flex: 'none', fontSize: E(19), color: C.ink3, fontWeight: 550, whiteSpace: 'nowrap' }}>{hint}</span>}
     </div>
   );
 }

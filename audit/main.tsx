@@ -20,6 +20,9 @@
  * show without the panel, and &scenario=pre runs a "Pre-show" playlist
  * before the show. &sub=hours|words|none&tagline=... sets the line under
  * the name.
+ * Groups (plan 270): &groups=4|6|8 sorts the controllers into that many
+ * groups, the same ones as the mockup; &gstyle=tags|off changes how this
+ * module shows them.
  * Playwright installs the clock (opening night, or Nov 9 for "wait") and runs
  * it forward so the round robin, misses and offline labels happen for real.
  * Not part of the shipped bundle.
@@ -61,8 +64,22 @@ const idOf = (host: string) => controllersFrom((systems as { systems: FppSystem[
 const KEEP = 'audit-fpp-settings';
 if (q.get('keep') === 'clear') localStorage.removeItem(KEEP);
 const kept = q.get('keep') ? JSON.parse(localStorage.getItem(KEEP) ?? '{}') as Record<string, unknown> : {};
+// The mockup's groups, by host name.
+const GROUPS: Record<string, Array<[string, string[]]>> = {
+  4: [['House', ['player', 'garage', 'house-left', 'house-right', 'roof']],
+    ['Yard', ['arches-left', 'arches-right', 'flake', 'illusion', 'left-mini-trees', 'mega', 'pixel-poles', 'quad-props', 'spinarchy']],
+    ['Trees', ['k8-merry', 'k8-showstopper']], ['Signs', ['right-singing-faces', 'sign-left', 'sign-right']]],
+  6: [['House', ['player', 'garage', 'house-left', 'house-right', 'roof']], ['Arches', ['arches-left', 'arches-right']],
+    ['Yard', ['flake', 'illusion', 'left-mini-trees', 'pixel-poles', 'quad-props', 'spinarchy']], ['Mega tree', ['mega']],
+    ['Trees', ['k8-merry', 'k8-showstopper']], ['Signs', ['right-singing-faces', 'sign-left', 'sign-right']]],
+  8: [['House', ['player', 'garage', 'roof']], ['House sides', ['house-left', 'house-right']], ['Arches', ['arches-left', 'arches-right']],
+    ['Yard', ['flake', 'illusion', 'left-mini-trees', 'pixel-poles']], ['Props', ['quad-props', 'spinarchy']], ['Mega tree', ['mega']],
+    ['Trees', ['k8-merry', 'k8-showstopper']], ['Signs', ['right-singing-faces', 'sign-left', 'sign-right']]],
+};
+const groupsFor = GROUPS[q.get('groups') ?? ''];
 const fppSettings: Record<string, unknown> = {
   ...(q.get('main') ? { show: { mainPlaylist: q.get('main') } } : {}),
+  ...(groupsFor ? { controllers: { names: {}, order: [], groups: groupsFor.map(([name, hosts]) => ({ name, ids: hosts.map(idOf) })) } } : {}),
   ...kept,
   remoteFalcon: ['request', 'between', 'quiet', 'vote'].includes(q.get('rf') ?? '') || q.get('rfpanel') === 'on',
   outlets: !withPower || q.get('links') === 'none' ? {} : {
@@ -258,7 +275,7 @@ root.style.height = '100%';
 const style = { fontSize: 16, fontFamily: 'inter', textColor: '#f4f6ff', backgroundColor: 'rgba(7, 9, 20, 0.5)', borderRadius: 0, padding: 24, opacity: 1, backdropBlur: 26 };
 const config = {
   playerAddress: q.get('player') ?? '192.168.0.200', view, theme: q.get('theme') ?? undefined, songNames: 'tags', covers: true, hiddenControllers: [],
-  subtitle: q.get('sub') ?? undefined, tagline: q.get('tagline') ?? undefined,
+  subtitle: q.get('sub') ?? undefined, tagline: q.get('tagline') ?? undefined, groupStyle: q.get('gstyle') ?? undefined,
 };
 // The hub's secret store, for the settings panel's Connect and Disconnect.
 const realFetch = window.fetch.bind(window);

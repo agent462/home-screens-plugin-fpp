@@ -6,7 +6,7 @@ import { healthOf, OFFLINE_AFTER_MISSES, summarize, type Health, type OutletPowe
 import { REQUESTS_STALE_MS } from '../lib/poll';
 import { rfView, sequenceKey, type RfShow, type RfSong, type RfView } from '../lib/remote-falcon';
 import { cadenceText, entryFor, isRunning, showPhase, throughText, type ShowPhase } from '../lib/schedule';
-import { arrangeControllers, type ControllerPrefs } from '../lib/show';
+import { NO_PREFS, sectionsOf, type ControllerPrefs, type Section } from '../lib/show';
 import { albumLine, coverSearchTerm, namesFromFile, songNames, splitExtra, type SongNameSource, type SongNames } from '../lib/songs';
 import { controllersFrom, type Controller } from '../lib/systems';
 import { currentSongIndex, playlistSongs, roundPosition, type PlaylistSong, type RoundPosition } from '../lib/timeline';
@@ -91,6 +91,9 @@ export interface ShowModel {
   /** The playlist's songs for the cover grid (it shows nine distinct covers). */
   grid: SongView[];
   controllers: ControllerView[];
+  /** The same controllers in the runs the family grouped them into: the
+   *  ones in no group first (name null), then each group. */
+  sections: Section<ControllerView>[];
   summary: Summary;
   cadence: string | null;
   through: string | null;
@@ -207,17 +210,21 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
   };
 
   const found = controllersFrom(state.systems ?? [], opts.hidden, opts.formatNumber);
-  const controllers = opts.controllers ? arrangeControllers(found, opts.controllers) : found;
   const readings = new Map<string, Reading>();
   const health = new Map<string, Health>();
-  const views: ControllerView[] = controllers.map((c) => {
-    const reading = c.isPlayer ? state.player : state.remotes[c.id];
-    const r = reading ?? { status: null, lastOkAt: null, firstMissAt: null, misses: 0, restartedAt: null, idleWhilePlaying: 0 };
-    readings.set(c.id, r);
-    const h = healthOf(r, opts.now, opts.power?.[c.id]);
-    health.set(c.id, h);
-    return { c, health: h, reading: r };
-  });
+  const sections = sectionsOf(found, opts.controllers ?? NO_PREFS).map((s) => ({
+    name: s.name,
+    items: s.items.map((c): ControllerView => {
+      const reading = c.isPlayer ? state.player : state.remotes[c.id];
+      const r = reading ?? { status: null, lastOkAt: null, firstMissAt: null, misses: 0, restartedAt: null, idleWhilePlaying: 0 };
+      readings.set(c.id, r);
+      const h = healthOf(r, opts.now, opts.power?.[c.id]);
+      health.set(c.id, h);
+      return { c, health: h, reading: r };
+    }),
+  }));
+  const views = sections.flatMap((s) => s.items);
+  const controllers = views.map((v) => v.c);
 
   const planned = phase.kind === 'playing' ? phase.playlist : phase.kind === 'idle' ? '' : phase.playlist;
   const at = phase.kind === 'waiting' ? phase.nextAt : phase.kind === 'done' ? phase.nextAt : opts.now;
@@ -243,6 +250,7 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
     firstUp: wrap(0, 3),
     grid: wrap(0, Math.min(songs.length, 24)),
     controllers: views,
+    sections,
     summary: summarize(controllers, health, readings),
     cadence: cadenceText(entry, opts.locale),
     through: throughText(entry, opts.locale),

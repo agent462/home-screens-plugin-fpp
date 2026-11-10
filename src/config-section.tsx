@@ -185,6 +185,8 @@ export function ConfigSection({ config, onChange }: PluginConfigSectionProps) {
           onHidden={(ids) => onChange({ hiddenControllers: ids })}
           prefs={prefs}
           onPrefs={setPrefs}
+          groupStyle={cfg.groupStyle}
+          onGroupStyle={(groupStyle) => onChange({ groupStyle })}
         />
       )}
 

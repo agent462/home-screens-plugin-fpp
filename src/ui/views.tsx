@@ -1,12 +1,13 @@
 import React from 'react';
 import type { ControllerView, ShowModel } from '../data/model';
+import { cardHeight, groupLayout, largeFit, largeLayout, smallFit } from '../lib/groups';
 import { namesSentence } from '../lib/health';
 import { Hero, HeroMessage, nextCount, nextDayWords } from './hero';
-import { useNow } from './hooks';
-import { DEFAULT_TITLE } from '../lib/show';
+import { useBox, useNow } from './hooks';
+import { DEFAULT_TITLE, type GroupStyle } from '../lib/show';
 import { Bars, Icon } from './icons';
 import {
-  AlsoPlaying, alsoPlayingText, Card, Cover, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, Logo, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Brand, type Env,
+  AlsoPlaying, alsoPlayingText, Card, Cover, GroupHeading, gridShape, Header, headerSub, LargeCard, listNames, liveElapsed, LiveProgress, Logo, playlistWords, LiveSegments, Mosaic, nextList, Pill, playingTag, Queue, Segments, showPill, StatTiles, Tag, voteLeader, type Brand, type Env, type GroupMark,
 } from './parts';
 import { C, clamp, E, ellipsis, kicker, outline, tnum, tv } from './tokens';
 
@@ -31,31 +32,101 @@ interface ViewProps {
   env: Env;
   o: Orientation;
   onOpen: (id: string) => void;
+  /** How this module shows the controller groups. Headings when not given. */
+  groups?: GroupStyle;
 }
 
 const col: React.CSSProperties = { display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 };
+
+const HINT = 'Tap one for details';
 
 function SectionHead() {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flex: 'none', padding: `0 ${E(4)}` }}>
       <h3 style={{ fontSize: E(30), fontWeight: 720, letterSpacing: '-.01em', margin: 0 }}>Controllers</h3>
-      <span style={{ fontSize: E(21), color: C.ink3, fontWeight: 550 }}>Tap one for details</span>
+      <span style={{ fontSize: E(21), color: C.ink3, fontWeight: 550 }}>{HINT}</span>
     </div>
   );
 }
 
-function CardGrid({ items, env, onOpen, cols, minRows, gap, large, pad }: {
-  items: ControllerView[]; env: Env; onOpen: (id: string) => void; cols: number; minRows: number; gap: number; large?: boolean; pad?: number[];
-}) {
+interface GridProps {
+  m: ShowModel;
+  env: Env;
+  onOpen: (id: string) => void;
+  cols: number;
+  minRows: number;
+  gap: number;
+  large?: boolean;
+  pad?: number[];
+}
+
+/** The family made groups (a module can still choose not to show them). */
+const hasGroups = (m: ShowModel) => m.sections.some((s) => s.name !== null);
+
+/** Groups shown as tags: the name on each group's first card, and every
+ *  other group a shade lighter so the runs read as blocks. */
+function groupMarks(m: ShowModel): Map<string, GroupMark> {
+  const marks = new Map<string, GroupMark>();
+  let n = 0;
+  for (const s of m.sections) {
+    if (s.name === null) continue;
+    s.items.forEach((v, i) => marks.set(v.c.id, { tag: i === 0 ? s.name ?? undefined : undefined, alt: n % 2 === 1 }));
+    n++;
+  }
+  return marks;
+}
+
+function CardGrid({ m, env, onOpen, cols, minRows, gap, large, pad, tags }: GridProps & { tags?: boolean }) {
+  const items = m.controllers;
   const shape = gridShape(items.length, cols, minRows);
+  const marks = tags ? groupMarks(m) : null;
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: `repeat(${shape.cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${shape.rows}, minmax(0, 1fr))`,
       gap: E(gap), flex: '1 1 0', minHeight: 0,
     }}>
       {items.map((v) => large
-        ? <LargeCard key={v.c.id} v={v} env={env} onOpen={onOpen} statFont={shape.cols >= 4 ? 20 : 21} />
-        : <Card key={v.c.id} v={v} env={env} onOpen={onOpen} pad={pad} />)}
+        ? <LargeCard key={v.c.id} v={v} env={env} onOpen={onOpen} statFont={shape.cols >= 4 ? 20 : 21} mark={marks?.get(v.c.id)} />
+        : <Card key={v.c.id} v={v} env={env} onOpen={onOpen} pad={pad} mark={marks?.get(v.c.id)} />)}
+    </div>
+  );
+}
+
+/**
+ * The controllers under a heading per group. The grid has a fixed amount of
+ * room, so it measures itself and the cards give way to fit: padding first,
+ * then (small cards) the address line; detailed cards take more columns.
+ * Until it has been measured it draws the tight fit, which is the likely one.
+ */
+function GroupedGrid({ m, env, onOpen, cols, minRows, gap, large, pad = [14, 18, 13, 20], hint, headingH = 30 }: GridProps & { hint?: string; headingH?: number }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const box = useBox(ref);
+  const avail = box.h / (env.unit || 1);
+  const sizes = m.sections.map((s) => ({ count: s.items.length, headed: s.name !== null }));
+  const layout = large
+    ? largeLayout(sizes, cols, avail, gap, headingH)
+    : groupLayout(sizes, gridShape(m.controllers.length, cols, minRows).cols);
+  const height = avail > 0 ? cardHeight(avail, layout, gap, headingH) : 0;
+  const small = height > 0 ? smallFit(height, pad[0] + pad[2]) : 'tight';
+  const big = height > 0 ? largeFit(height) : 'tight';
+  const first = layout.headings[0]?.section;
+  return (
+    <div ref={ref} style={{
+      display: 'grid', gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+      gridTemplateRows: layout.rows.map((r) => (r === 'heading' ? E(headingH) : 'minmax(0, 1fr)')).join(' '),
+      gap: E(gap), flex: '1 1 0', minHeight: 0,
+    }}>
+      {layout.headings.map((h) => {
+        const s = m.sections[h.section];
+        return <GroupHeading key={`h${h.section}`} name={s.name ?? ''} items={s.items} hint={h.section === first ? hint : undefined} style={{ gridRow: h.row, gridColumn: `${h.col} / span ${h.span}` }} />;
+      })}
+      {layout.cells.map((cell) => {
+        const v = m.sections[cell.section].items[cell.item];
+        const place: React.CSSProperties = { gridRow: cell.row, gridColumn: cell.col };
+        return large
+          ? <LargeCard key={v.c.id} v={v} env={env} onOpen={onOpen} statFont={layout.cols >= 4 ? 20 : 21} fit={big} narrow={layout.cols >= 5} style={place} />
+          : <Card key={v.c.id} v={v} env={env} onOpen={onOpen} pad={pad} fit={small} style={place} />;
+      })}
     </div>
   );
 }
@@ -70,10 +141,15 @@ function NoControllers({ m }: { m: ShowModel }) {
 
 // ── Show ────────────────────────────────────────────────────────────────────
 
-export function ShowView({ m, env, o, onOpen }: ViewProps) {
-  const grid = (cols: number, minRows: number, pad?: number[]) => m.controllers.length
-    ? <CardGrid items={m.controllers} env={env} onOpen={onOpen} cols={cols} minRows={minRows} gap={12} pad={pad} />
-    : <NoControllers m={m} />;
+export function ShowView({ m, env, o, onOpen, groups = 'headings' }: ViewProps) {
+  // With headings, the first one carries the hint and the section title goes:
+  // the headings do its job, and its room pays for most of theirs.
+  const headed = groups === 'headings' && hasGroups(m) && m.controllers.length > 0;
+  const grid = (cols: number, minRows: number, pad?: number[], headingH?: number) => {
+    if (!m.controllers.length) return <NoControllers m={m} />;
+    const props = { m, env, onOpen, cols, minRows, gap: 12, pad };
+    return headed ? <GroupedGrid {...props} hint={HINT} headingH={headingH} /> : <CardGrid {...props} tags={groups === 'tags' && hasGroups(m)} />;
+  };
   if (o === 'landscape') {
     return (
       <div style={{
@@ -86,8 +162,8 @@ export function ShowView({ m, env, o, onOpen }: ViewProps) {
           <StatTiles m={m} env={env} style={{ gap: E(14) }} />
         </div>
         <div style={{ ...col, gap: E(12) }}>
-          <SectionHead />
-          {grid(3, 7, [11, 18, 10, 20])}
+          {!headed && <SectionHead />}
+          {grid(3, 7, [11, 18, 10, 20], 26)}
         </div>
       </div>
     );
@@ -97,7 +173,7 @@ export function ShowView({ m, env, o, onOpen }: ViewProps) {
       <Header env={env} sub={headerSub(env, m)} pill={showPill(m, env)} />
       <Hero m={m} env={env} />
       <StatTiles m={m} env={env} />
-      <SectionHead />
+      {!headed && <SectionHead />}
       {grid(3, 7)}
     </div>
   );
@@ -215,7 +291,7 @@ export function PlayerView({ m, env, o }: ViewProps) {
 
 // ── Controllers ─────────────────────────────────────────────────────────────
 
-export function ControllersView({ m, env, o, onOpen }: ViewProps) {
+export function ControllersView({ m, env, o, onOpen, groups = 'headings' }: ViewProps) {
   const s = m.summary;
   const parts = [`${s.online} of ${s.total} online`];
   if (s.warningNames.length) parts.push(s.warningNames.length === 1 ? '1 warning' : `${s.warningNames.length} warnings`);
@@ -229,9 +305,10 @@ export function ControllersView({ m, env, o, onOpen }: ViewProps) {
   return (
     <div style={{ ...col, gap: E(landscape ? 20 : 22), padding: landscape ? `${E(12)} ${E(20)}` : `${E(18)} ${E(20)} ${E(16)}`, height: '100%', boxSizing: 'border-box' }}>
       <Header env={env} sub={m.controllers.length ? parts.join(' · ') : headerSub(env, m)} pill={pill} />
-      {m.controllers.length
-        ? <CardGrid items={m.controllers} env={env} onOpen={onOpen} cols={landscape ? 4 : 2} minRows={landscape ? 5 : 10} gap={14} large />
-        : <NoControllers m={m} />}
+      {!m.controllers.length ? <NoControllers m={m} />
+        : groups === 'headings' && hasGroups(m)
+          ? <GroupedGrid m={m} env={env} onOpen={onOpen} cols={landscape ? 4 : 2} minRows={landscape ? 5 : 10} gap={14} large />
+          : <CardGrid m={m} env={env} onOpen={onOpen} cols={landscape ? 4 : 2} minRows={landscape ? 5 : 10} gap={14} large tags={groups === 'tags' && hasGroups(m)} />}
     </div>
   );
 }

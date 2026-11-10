@@ -72,7 +72,8 @@ export default function LightShow({ config, style }: PluginComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the fields stand for `show`
     [show.name, show.logo, cfg.subtitle, cfg.tagline],
   );
-  const env: Env = { ...host, now, address: cfg.playerAddress.trim(), brand };
+  const hostFont = Number.isFinite(style?.fontSize) && style.fontSize > 0 ? style.fontSize : 16;
+  const env: Env = { ...host, now, address: cfg.playerAddress.trim(), brand, unit: k * (hostFont / 16) };
   React.useEffect(() => { feed?.setMainPlaylist(show.mainPlaylist); }, [feed, show.mainPlaylist]);
   const prefsKey = JSON.stringify(savedControllerPrefs());
   const prefs = React.useMemo(() => readControllerPrefs(JSON.parse(prefsKey)), [prefsKey]);
@@ -138,7 +139,7 @@ export default function LightShow({ config, style }: PluginComponentProps) {
     };
   }
 
-  const props = model ? { m: model, env, o, onOpen: setOpenId } : null;
+  const props = model ? { m: model, env, o, onOpen: setOpenId, groups: cfg.groupStyle } : null;
   let body: React.ReactNode = null;
   if (!base) body = <SetupView view={cfg.view} brand={brand} />;
   else if (props) {
@@ -152,7 +153,6 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const cover = model && (cfg.view === 'player' || cfg.view === 'strip')
     ? model.current?.cover ?? (model.phase.kind === 'waiting' ? model.grid[Math.min(5, model.grid.length - 1)]?.cover ?? null : null)
     : null;
-  const hostFont = Number.isFinite(style?.fontSize) && style.fontSize > 0 ? style.fontSize : 16;
   const d = designPx(k, hostFont);
   const px = (n: number) => `${Math.round(n * k * (hostFont / 16))}px`;
 

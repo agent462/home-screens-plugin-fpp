@@ -88,7 +88,8 @@ A controller that misses one check is asked again 10 seconds later, and called O
 | Theme | See-through (your screen's background shows behind the module), or one of the 12 full-screen themes: Linen, Paper, Mist, Sandstone, Vellum, Bloom, Charcoal, Midnight, Slate, Aurora, Obsidian, Horizon. The player card stays dark in every theme; the Player view only takes the theme's accent color. |
 | Song names from | The music file's tags, or the sequence name (for files with wrong tags). With Remote Falcon connected this steps aside: names come from there. |
 | Look up album covers | Finds covers through Apple's free music search; only the title and artist are sent. With Remote Falcon connected its covers come first and this only fills in the ones it lacks. |
-| Controllers | Untick a controller to leave it out of this module. Type a name to call it something else, and use the arrows to put the ones you care about first. Names and order are shared by every Light Show module. |
+| Controllers | Untick a controller to leave it out of this module. Type a name to call it something else, and use the arrows to put the ones you care about first. "Add a group" puts a line in the list; a controller belongs to the group it sits under, and the group's name becomes a heading like House or Yard on the wall. Names, order and groups are shared by every Light Show module. |
+| Groups on this module | Once you have groups: a heading above each group (the cards get a little shorter to make room), a small tag on each group's first card (takes no room), or don't show them. |
 | Power | Which Home Assistant outlet powers each controller. Shared by every Light Show module. |
 | Remote Falcon | Connects your Remote Falcon account so the wall shows requests and votes. Shared by every Light Show module. |
 

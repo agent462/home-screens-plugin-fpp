@@ -176,8 +176,17 @@ describe('buildModel with named and ordered controllers', () => {
     { address: '192.168.0.102', hostname: 'roof', uuid: 'b', typeId: 1 },
   ];
   it('uses the family names and order on the cards', () => {
-    const m = buildModel(state(playing('2026', GRINCH), { systems }), { ...opts, controllers: { names: { a: 'Big tree' }, order: ['b', 'a'] } });
+    const m = buildModel(state(playing('2026', GRINCH), { systems }), { ...opts, controllers: { names: { a: 'Big tree' }, order: ['b', 'a'], groups: [] } });
     expect(m.controllers.map((v) => v.c.name)).toEqual(['Roof', 'Big tree', 'Player']);
+    expect(m.sections).toHaveLength(1);
+    expect(m.sections[0].name).toBeNull();
+  });
+  it('puts the controllers in no group first, then each group, and leaves out a group with nothing showing', () => {
+    const prefs = { names: {}, order: [], groups: [{ name: 'Yard', ids: ['a', 'gone'] }, { name: 'Shed', ids: ['hidden'] }, { name: 'House', ids: ['b'] }] };
+    const m = buildModel(state(playing('2026', GRINCH), { systems }), { ...opts, controllers: prefs });
+    expect(m.sections.map((s) => [s.name, s.items.map((v) => v.c.name)])).toEqual([[null, ['Player']], ['Yard', ['K8 Showstopper']], ['House', ['Roof']]]);
+    expect(m.controllers.map((v) => v.c.name)).toEqual(['Player', 'K8 Showstopper', 'Roof']);
+    expect(m.summary.total).toBe(3);
   });
   it('is the player first, then by name, when nobody arranged them', () => {
     const m = buildModel(state(playing('2026', GRINCH), { systems }), opts);
