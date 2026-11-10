@@ -1,7 +1,7 @@
 {
   "id": "fpp",
   "name": "Light Show",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "A home base for your Falcon Player (FPP) light show: what's playing, where the show is tonight, and how every controller is doing.",
   "author": "agent462",
   "license": "MIT",

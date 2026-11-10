@@ -1,6 +1,6 @@
 {
   "name": "hs-plugin-fpp",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Light Show: a Home Screens home base for a Falcon Player (FPP) light show",
   "license": "MIT",
   "private": true,
