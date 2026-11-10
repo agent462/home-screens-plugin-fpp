@@ -21,6 +21,25 @@ A controller card stays quiet while all is well (a green dot). It only says some
 
 The Home Screens hub must be able to reach your show network.
 
+## Turning controllers off and on
+
+If you use the Home Assistant plugin and your controllers are plugged into smart plugs that Home Assistant can see, Light Show can switch them from the wall.
+
+1. Connect the Home Assistant plugin (its address and access token).
+2. Open any Light Show module's settings and find **Power**. Pick the outlet for each controller. Tapo and Kasa plugs are listed first; choose "Show every switch in Home Assistant" for other brands. Outlets whose name matches a controller are offered as suggestions, and nothing is linked until you accept them.
+3. Tap a controller on the wall. Its details now have **Turn off**, **Turn on** and **Restart power** (off for 10 seconds, then back on). Turn off and Restart power need a second tap.
+
+Good to know:
+
+- The links are saved once for the plugin, so every Light Show module and wall shares them.
+- A controller whose outlet is off shows a grey "Power off" instead of a red "Offline".
+- One outlet can feed several controllers; the wall names the others before it cuts power.
+- The show player is asked to shut down safely before its power is cut. Other controllers lose power straight away.
+- The wall runs the 10 second wait itself. If it reloads in the middle, it turns the outlet back on when it comes back.
+- Anyone who can tap the wall can use these buttons.
+
+Light Show never talks to a plug itself. It asks Home Assistant, through the Home Assistant plugin's saved connection, about once every 30 seconds for the linked outlets only.
+
 ## Light on the controllers
 
 Every request is FPP's own `/api/fppd/status` (answered by fppd, no PHP), sent through the hub, which caches each answer so several walls cost the same as one.
@@ -43,16 +62,17 @@ A controller that misses one check is asked again 10 seconds later, and called O
 | Song names from | The music file's tags, or the sequence name (for files with wrong tags). |
 | Look up album covers | Finds covers through Apple's free music search; only the title and artist are sent. |
 | Controllers to show | Leave out any controller. |
+| Power | Which Home Assistant outlet powers each controller. Shared by every Light Show module. |
 
 ## Development
 
 ```bash
 npm install
-npm test             # unit tests (rules, feed, real show fixtures)
+npm test             # unit tests (rules, feed, power, real show fixtures)
 npm run typecheck
 npm run build        # dist/bundle.js
 npm run dev          # build on change and serve on :5173 for the editor's Developer tab
 npm run audit:build  # audit/ harness: the real views against a fake show
 ```
 
-The audit harness (`audit/`) mounts the real component with a stubbed SDK that answers from `test/fixtures/`. Serve `audit-dist/` and open `index.html?view=show&scenario=live&w=1080&h=1920` (`scenario`: `live`, `wait`, `done`, `down`). Covers for the harness go in `audit/public/art/` (not committed).
+The audit harness (`audit/`) mounts the real component with a stubbed SDK that answers from `test/fixtures/`. Serve `audit-dist/` and open `index.html?view=show&scenario=live&w=1080&h=1920` (`scenario`: `live`, `wait`, `done`, `down`). Add `&power=1` for a fake Home Assistant with made-up outlets (`&garage=off`, `&garage=lost`, `&ha=down`, `&ha=none`), or `&panel=1` for the settings panel. Covers for the harness go in `audit/public/art/` (not committed).

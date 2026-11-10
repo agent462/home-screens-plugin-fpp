@@ -3,7 +3,9 @@ dist/
 .DS_Store
 *.local
 
-# Claude Code working files — plans/specs/mockups are never committed
+# Claude Code working files: plans, specs and mockups are never committed
+.claude/plans/
+.claude/mockups/
 .c*
 !.claude/
 .claude/*

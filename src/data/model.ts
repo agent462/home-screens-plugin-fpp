@@ -2,7 +2,7 @@
  *  that varies (time, zone, locale, settings) comes in through `opts`. */
 import type { FppStatus } from '../lib/fpp-types';
 import { num } from '../lib/format';
-import { healthOf, OFFLINE_AFTER_MISSES, summarize, type Health, type Reading, type Summary } from '../lib/health';
+import { healthOf, OFFLINE_AFTER_MISSES, summarize, type Health, type OutletPower, type Reading, type Summary } from '../lib/health';
 import { cadenceText, entryFor, showPhase, throughText, type ShowPhase } from '../lib/schedule';
 import { coverSearchTerm, songNames, type SongNameSource, type SongNames } from '../lib/songs';
 import { controllersFrom, type Controller } from '../lib/systems';
@@ -17,6 +17,8 @@ export interface ModelOptions {
   locale: string;
   now: number;
   formatNumber?: (n: number) => string;
+  /** Controller id → its linked outlet, for controllers that have one. */
+  power?: Readonly<Record<string, OutletPower>>;
 }
 
 export interface SongView {
@@ -110,7 +112,7 @@ export function buildModel(state: FeedState, opts: ModelOptions): ShowModel {
     const reading = c.isPlayer ? state.player : state.remotes[c.id];
     const r = reading ?? { status: null, lastOkAt: null, firstMissAt: null, misses: 0, restartedAt: null, idleWhilePlaying: 0 };
     readings.set(c.id, r);
-    const h = healthOf(r, opts.now);
+    const h = healthOf(r, opts.now, opts.power?.[c.id]);
     health.set(c.id, h);
     return { c, health: h, reading: r };
   });

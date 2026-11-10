@@ -64,6 +64,17 @@
     }
   },
 
+  "settingsSchema": {
+    "type": "object",
+    "properties": {
+      "outlets": {
+        "type": "object",
+        "title": "Controller outlets",
+        "description": "Which Home Assistant outlet powers each controller. Set these in a Light Show module's settings, under Power."
+      }
+    }
+  },
+
   "exports": {
     "component": "default",
     "configSection": "ConfigSection"

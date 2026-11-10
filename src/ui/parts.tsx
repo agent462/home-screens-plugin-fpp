@@ -6,7 +6,8 @@ import { readingNames } from '../lib/sensors';
 import { namesFromFile } from '../lib/songs';
 import { BrandMark, Icon } from './icons';
 import { useNow } from './hooks';
-import { C, clamp, E, ellipsis, kicker, outline, tnum, TONE, type ToneName } from './tokens';
+import { PowerSection, type PowerLink } from './power';
+import { C, clamp, E, ellipsis, kicker, mix, outline, tnum, TONE, type ToneName } from './tokens';
 
 export interface Env {
   units: Units;
@@ -239,7 +240,9 @@ export function StatTiles({ m, env, style }: { m: ShowModel; env: Env; style?: R
   const tiles: Array<{ v: React.ReactNode; of?: string; l: string; n: string; tone?: 'ok' | 'warn' | 'bad' }> = [
     {
       v: s.online, of: `/ ${s.total}`, l: s.online === s.total ? 'All online' : 'Online',
-      n: offline ? `${listNames(s.offlineNames)} offline` : s.online < s.total ? 'Still checking' : 'Every controller',
+      n: offline ? `${listNames(s.offlineNames)} offline`
+        : s.poweredOffNames.length ? `${listNames(s.poweredOffNames)} switched off`
+        : s.online < s.total ? 'Still checking' : 'Every controller',
       tone: offline ? 'bad' : s.online === s.total ? 'ok' : undefined,
     },
     live
@@ -275,6 +278,10 @@ const toneOf = (v: ControllerView): ToneName => v.health.tone === 'unknown' ? 'u
 
 function Dot({ v, size = 13 }: { v: ControllerView; size?: number }) {
   const t = TONE[toneOf(v)];
+  // Switched off at the outlet: a hollow grey ring, not a red alarm.
+  if (v.health.poweredOff) {
+    return <span style={{ width: E(size), height: E(size), borderRadius: '50%', flex: 'none', boxSizing: 'border-box', border: `${E(3)} solid ${C.idle}` }} />;
+  }
   return <span style={{
     width: E(size), height: E(size), borderRadius: '50%', flex: 'none', background: t.dot,
     boxShadow: v.health.offline ? `0 0 0 ${E(5)} rgba(255,107,107,.18)` : undefined,
@@ -288,6 +295,7 @@ function cardFrame(v: ControllerView): React.CSSProperties {
     overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer',
     textAlign: 'left', color: 'inherit', font: 'inherit',
   };
+  if (h.poweredOff) return { ...base, background: mix(3) };
   if (h.offline) return { ...base, background: 'rgba(255,107,107,.07)', borderColor: 'rgba(255,107,107,.40)' };
   if (h.tone === 'warn') return { ...base, borderColor: h.reason === 'warning' ? 'rgba(251,191,36,.42)' : 'rgba(251,191,36,.30)' };
   if (v.c.isPlayer) return { ...base, background: 'linear-gradient(135deg, rgba(255,207,107,.13), rgba(255,207,107,.04))', borderColor: 'rgba(255,207,107,.30)' };
@@ -301,10 +309,13 @@ const Badge = () => (
 function Label({ v }: { v: ControllerView }) {
   if (!v.health.label) return null;
   const t = TONE[toneOf(v)];
-  return <span style={{ fontSize: E(19), fontWeight: 700, whiteSpace: 'nowrap', color: t.text, flex: 'none' }}>{v.health.label}</span>;
+  return <span style={{ fontSize: E(19), fontWeight: 700, whiteSpace: 'nowrap', color: v.health.poweredOff ? '#c5cede' : t.text, flex: 'none' }}>{v.health.label}</span>;
 }
 
 function lastHeard(v: ControllerView, env: Env): string {
+  if (v.health.poweredOff) {
+    return v.health.offSince ? `Off since ${clockText(v.health.offSince, env.timeZone, env.locale)}` : 'Switched off at the outlet';
+  }
   const at = v.reading.lastOkAt;
   return at ? `Last heard ${clockText(at, env.timeZone, env.locale)}` : 'Not heard from yet';
 }
@@ -317,7 +328,7 @@ export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: Controller
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
           <Dot v={v} />
-          <span style={{ fontSize: E(26), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, ...ellipsis }}>{v.c.name}</span>
+          <span style={{ fontSize: E(26), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, opacity: v.health.poweredOff ? 0.7 : undefined, ...ellipsis }}>{v.c.name}</span>
           {v.c.isPlayer && <Badge />}
           <Label v={v} />
         </div>
@@ -325,7 +336,7 @@ export function Card({ v, env, onOpen, pad = [14, 18, 13, 20] }: { v: Controller
           {v.c.address} · {v.c.cape}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: E(16), paddingLeft: E(25), fontSize: E(20), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap', ...tnum }}>
+      <div style={{ display: 'flex', gap: E(16), paddingLeft: E(25), fontSize: E(20), color: C.ink2, fontWeight: 600, whiteSpace: 'nowrap', opacity: v.health.poweredOff ? 0.7 : undefined, ...tnum }}>
         {v.health.offline ? <span>{lastHeard(v, env)}</span>
           : checking ? <span style={{ color: C.ink3 }}>Checking…</span>
           : <>
@@ -359,7 +370,7 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(12), minWidth: 0 }}>
           <Dot v={v} />
-          <span style={{ fontSize: E(29), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, ...ellipsis }}>{v.c.name}</span>
+          <span style={{ fontSize: E(29), fontWeight: 660, letterSpacing: '-.01em', flex: 1, minWidth: 0, opacity: v.health.poweredOff ? 0.7 : undefined, ...ellipsis }}>{v.c.name}</span>
           {v.c.isPlayer && <Badge />}
           <Label v={v} />
         </div>
@@ -372,7 +383,8 @@ export function LargeCard({ v, env, onOpen, statFont = 21 }: { v: ControllerView
         <div style={{ paddingLeft: E(25), fontSize: E(19), color: C.warnText, lineHeight: 1.3, ...ellipsis }}>{v.health.warnings[0]}</div>
       )}
       <div style={{ display: 'flex', gap: E(statFont < 21 ? 16 : 22), paddingLeft: E(25), fontSize: E(statFont), fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', ...tnum }}>
-        {v.health.offline
+        {v.health.poweredOff ? <span style={{ color: C.ink2, fontWeight: 600, opacity: 0.7 }}>{lastHeard(v, env)}</span>
+          : v.health.offline
           ? v.reading.lastOkAt
             ? [stat('Last heard', clockText(v.reading.lastOkAt, env.timeZone, env.locale)), typeof up === 'number' ? stat('Was up', uptimeText(up)) : null]
             : <span style={{ color: C.ink2, fontWeight: 600 }}>Not heard from yet</span>
@@ -397,6 +409,10 @@ export function gridShape(n: number, cols: number, minRows: number): { cols: num
 // ── Detail sheet ────────────────────────────────────────────────────────────
 
 function statusLine(v: ControllerView, m: ShowModel, env: Env): string {
+  if (v.health.poweredOff) {
+    const at = v.reading.lastOkAt;
+    return at ? `Power is off · last heard ${clockText(at, env.timeZone, env.locale)}` : 'Power is off';
+  }
   if (v.health.offline) {
     const at = v.reading.lastOkAt;
     return at ? `${v.health.label.replace('Offline · ', 'Offline for ')} · last heard ${clockText(at, env.timeZone, env.locale)}` : 'Has not answered yet';
@@ -410,11 +426,16 @@ function statusLine(v: ControllerView, m: ShowModel, env: Env): string {
   return line;
 }
 
-export function Sheet({ v, m, env, landscape, onClose }: { v: ControllerView; m: ShowModel; env: Env; landscape: boolean; onClose: () => void }) {
+export function Sheet({ v, m, env, landscape, power, onClose }: { v: ControllerView; m: ShowModel; env: Env; landscape: boolean; power?: PowerLink | null; onClose: () => void }) {
+  // Closes itself after 20 s, but not while a power button is armed or a
+  // restart is running.
+  const [hold, setHold] = React.useState(false);
   React.useEffect(() => {
+    if (hold) return undefined;
     const t = setTimeout(onClose, 20_000);
     return () => clearTimeout(t);
-  }, [onClose, v.c.id]);
+  }, [onClose, v.c.id, hold]);
+  const powerSection = power ? <PowerSection key={v.c.id} v={v} link={power} zone={env} landscape={landscape} onHold={setHold} /> : null;
   const st = v.reading.status;
   const playing = st && (st.status_name ?? '') === 'playing' ? namesFromFile(st.sequence_filename || st.current_sequence || '').title : '';
   const up = st?.uptimeTotalSeconds;
@@ -466,12 +487,14 @@ export function Sheet({ v, m, env, landscape, onClose }: { v: ControllerView; m:
     <div style={{ position: 'absolute', inset: 0, zIndex: 5 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(4,5,12,.62)' }} />
       <div role="dialog" aria-label={v.c.name} style={{
-        position: 'absolute', left: landscape ? '13%' : E(60), right: landscape ? '13%' : E(60), top: landscape ? '17.5%' : '15.6%',
+        position: 'absolute', left: landscape ? '13%' : E(60), right: landscape ? '13%' : E(60), top: landscape ? (power ? '11.1%' : '17.5%') : '15.6%',
         borderRadius: E(40), background: '#161a2b', border: `1px solid ${C.line2}`, boxShadow: `0 ${E(40)} ${E(120)} rgba(0,0,0,.6)`,
         padding: `${E(40)} ${E(44)}`, color: '#f4f6ff',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: E(18) }}>
-          <span style={{ width: E(18), height: E(18), borderRadius: '50%', background: tone.dot, flex: 'none' }} />
+          <span style={v.health.poweredOff
+            ? { width: E(18), height: E(18), borderRadius: '50%', flex: 'none', boxSizing: 'border-box', border: `${E(4)} solid ${C.idle}` }
+            : { width: E(18), height: E(18), borderRadius: '50%', background: tone.dot, flex: 'none' }} />
           <h4 style={{ fontSize: E(46), fontWeight: 760, letterSpacing: '-.02em', flex: 1, margin: 0, ...ellipsis }}>{v.c.name}</h4>
           <button type="button" aria-label="Close" onClick={onClose} style={{ width: E(76), height: E(76), borderRadius: '50%', background: 'rgba(255,255,255,.08)', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
             <Icon name="x" size={E(34)} />
@@ -479,8 +502,8 @@ export function Sheet({ v, m, env, landscape, onClose }: { v: ControllerView; m:
         </div>
         <div style={{ fontSize: E(24), color: C.ink2, marginTop: E(10), paddingLeft: E(36) }}>{statusLine(v, m, env)}</div>
         {landscape ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: E(28), marginTop: E(30), alignItems: 'start' }}>
-            <div>{warnings}{chips.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: E(8), marginTop: warnings.length ? E(18) : 0 }}>{chips}</div>}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: power ? '1.2fr 1fr' : '1fr 1.15fr', gap: E(28), marginTop: E(30), alignItems: 'start' }}>
+            <div style={{ minWidth: 0 }}>{warnings}{chips.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: E(8), marginTop: warnings.length ? E(18) : 0 }}>{chips}</div>}{powerSection}</div>
             {factGrid}
           </div>
         ) : (
@@ -488,6 +511,7 @@ export function Sheet({ v, m, env, landscape, onClose }: { v: ControllerView; m:
             {warnings.length > 0 && <div style={{ marginTop: E(22) }}>{warnings}</div>}
             {factGrid}
             {chips.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: E(8), marginTop: E(18) }}>{chips}</div>}
+            {powerSection}
           </>
         )}
       </div>

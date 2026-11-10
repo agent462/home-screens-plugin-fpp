@@ -56,7 +56,14 @@ export function applyCheck(prev: Reading | undefined, result: CheckResult, nowMs
 }
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'unknown';
-export type Reason = 'offline' | 'warning' | 'notPlaying' | 'restarted' | 'hot' | 'lowPower';
+export type Reason = 'offline' | 'powerOff' | 'warning' | 'notPlaying' | 'restarted' | 'hot' | 'lowPower';
+
+/** A controller's linked outlet, as far as its card cares. */
+export interface OutletPower {
+  off: boolean;
+  /** When it was turned off. */
+  since: number | null;
+}
 
 export interface Health {
   tone: Tone;
@@ -64,16 +71,24 @@ export interface Health {
   /** The words on the card, '' when all is well. */
   label: string;
   offline: boolean;
+  /** Not answering because its outlet is off: on purpose, not a fault. */
+  poweredOff: boolean;
+  /** When the outlet went off, when known. */
+  offSince: number | null;
   sensors: SensorSummary;
   warnings: string[];
 }
 
 /** One card's state. A card says something only when something is wrong. */
-export function healthOf(reading: Reading | undefined, nowMs: number): Health {
+export function healthOf(reading: Reading | undefined, nowMs: number, outlet?: OutletPower): Health {
   const r = reading ?? emptyReading();
   const sensors = summarizeSensors(r.status?.sensors);
   const warnings = warningTexts(r.status?.warnings);
-  const base = { sensors, warnings, offline: false };
+  const base = { sensors, warnings, offline: false, poweredOff: false, offSince: null };
+  // Its outlet is off and it has stopped answering: switched off, not lost.
+  if (outlet?.off && r.misses >= 1) {
+    return { ...base, offline: true, poweredOff: true, offSince: outlet.since, tone: 'unknown', reason: 'powerOff', label: 'Power off' };
+  }
   if (r.misses >= OFFLINE_AFTER_MISSES) {
     const since = r.lastOkAt ?? r.firstMissAt;
     return {
@@ -97,6 +112,8 @@ export interface Summary {
   total: number;
   online: number;
   offlineNames: string[];
+  /** Switched off at the outlet; not counted as offline. */
+  poweredOffNames: string[];
   /** Remotes (not the player) that answered. */
   remotesOnline: number;
   /** Of those, how many are playing right now. */
@@ -110,11 +127,13 @@ export function summarize(controllers: Controller[], health: Map<string, Health>
   let remotesOnline = 0;
   let remotesPlaying = 0;
   const offlineNames: string[] = [];
+  const poweredOffNames: string[] = [];
   const warningNames: string[] = [];
   let warmest: Summary['warmest'] = null;
   for (const c of controllers) {
     const h = health.get(c.id);
     const r = readings.get(c.id);
+    if (h?.poweredOff) { poweredOffNames.push(c.name); continue; }
     if (h?.offline) { offlineNames.push(c.name); continue; }
     if (!r?.status) continue;
     online++;
@@ -126,7 +145,7 @@ export function summarize(controllers: Controller[], health: Map<string, Health>
     const hot = h?.sensors.hottest;
     if (hot != null && (!warmest || hot > warmest.celsius)) warmest = { name: c.name, celsius: hot };
   }
-  return { total: controllers.length, online, offlineNames, remotesOnline, remotesPlaying, warningNames, warmest };
+  return { total: controllers.length, online, offlineNames, poweredOffNames, remotesOnline, remotesPlaying, warningNames, warmest };
 }
 
 /** "Garage is offline", "Garage and Roof are offline", "3 are offline". */

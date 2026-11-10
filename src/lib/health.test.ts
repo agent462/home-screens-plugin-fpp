@@ -81,3 +81,39 @@ describe('summarize the real show', () => {
     expect(namesSentence(['A', 'B', 'C'], 'are offline')).toBe('3 are offline');
   });
 });
+
+describe('a controller whose outlet is off', () => {
+  const answered = applyCheck(undefined, { ok: true, status: st('192.168.0.110') }, T0, false);
+  const missed = applyCheck(answered, { ok: false }, T0 + min(1), false);
+  const off = { off: true, since: T0 + 30_000 };
+
+  it('reads Power off, not Offline, once it stops answering', () => {
+    expect(healthOf(missed, T0 + min(2), off)).toMatchObject({
+      poweredOff: true, offline: true, tone: 'unknown', reason: 'powerOff', label: 'Power off', offSince: T0 + 30_000,
+    });
+  });
+
+  it('keeps its normal card while it still answers', () => {
+    expect(healthOf(answered, T0, off)).toMatchObject({ poweredOff: false, offline: false });
+  });
+
+  it('is Offline as usual when its outlet is on', () => {
+    const gone = applyCheck(missed, { ok: false }, T0 + min(2), false);
+    expect(healthOf(gone, T0 + min(3), { off: false, since: null })).toMatchObject({ poweredOff: false, offline: true, tone: 'bad' });
+  });
+
+  it('is left out of the offline count', () => {
+    const controllers = controllersFrom((fixture as { systems: FppSystem[] }).systems).slice(0, 3);
+    const health = new Map<string, Health>();
+    const readings = new Map<string, Reading>();
+    controllers.forEach((c, i) => {
+      const r = i === 1 ? missed : answered;
+      readings.set(c.id, r);
+      health.set(c.id, healthOf(r, T0 + min(2), i === 1 ? off : undefined));
+    });
+    const s = summarize(controllers, health, readings);
+    expect(s.offlineNames).toEqual([]);
+    expect(s.poweredOffNames).toEqual([controllers[1].name]);
+    expect(s.online).toBe(2);
+  });
+});

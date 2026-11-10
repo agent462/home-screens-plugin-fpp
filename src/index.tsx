@@ -2,8 +2,14 @@ import React from 'react';
 import type { PluginComponentProps } from './hs-plugin';
 import { hostFrameStyle } from './host-style';
 import { Feed, feedFor, type FeedState } from './data/feed';
-import { proxyFetch, readConfig, sdk } from './config';
+import { proxyFetch, readConfig, savedLinks, sdk } from './config';
 import { buildModel, wantedCoverNames, wantedMedia } from './data/model';
+import { PowerStore, powerStore } from './data/power';
+import { haApi } from './lib/ha';
+import type { OutletPower } from './lib/health';
+import { sharedWith } from './lib/power';
+import { controllersFrom } from './lib/systems';
+import type { PowerLink } from './ui/power';
 import { playerBaseUrl } from './lib/poll';
 import { useBox, useNow } from './ui/hooks';
 import { Backdrop, Sheet, type Env } from './ui/parts';
@@ -22,6 +28,9 @@ function makeFeed(base: string): Feed {
     set: (key, value, ttl) => sdk()?.displayCache?.set(key, value, ttl),
   });
 }
+
+const storage = () => { try { return window.localStorage; } catch { return null; } };
+const makePower = () => new PowerStore(haApi, proxyFetch, storage());
 
 const noSubscribe = () => () => {};
 const noState = (): FeedState | null => null;
@@ -54,13 +63,31 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const host = useHost();
   const env: Env = { ...host, now, address: cfg.playerAddress.trim() };
 
+  // Outlets: the saved links are re-read on the slow tick, so a link made in
+  // the editor reaches a wall without a reload.
+  const power = React.useMemo(() => powerStore(makePower), []);
+  const powerState = React.useSyncExternalStore(power.subscribe, power.getState, power.getState);
+  const linksKey = JSON.stringify(savedLinks());
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is the re-read tick
+  const links = React.useMemo(() => savedLinks(), [linksKey, now]);
+  React.useEffect(() => { power.setLinked(Object.values(JSON.parse(linksKey) as Record<string, string>)); }, [power, linksKey]);
+  const outletPower = React.useMemo(() => {
+    const out: Record<string, OutletPower> = {};
+    if (powerState.ha !== 'ok') return out;
+    for (const [id, entity] of Object.entries(JSON.parse(linksKey) as Record<string, string>)) {
+      const r = powerState.outlets[entity];
+      if (r) out[id] = { off: r.state === 'off', since: r.changedAt };
+    }
+    return out;
+  }, [powerState, linksKey]);
+
   const hiddenKey = cfg.hiddenControllers.join('|');
   const model = React.useMemo(() => (state ? buildModel(state, {
     songNames: cfg.songNames, covers: cfg.covers, hidden: cfg.hiddenControllers, timeZone: host.timeZone, locale: host.locale, now,
-    formatNumber: (n) => n.toLocaleString(host.locale),
+    formatNumber: (n) => n.toLocaleString(host.locale), power: outletPower,
   }) : null),
   // eslint-disable-next-line react-hooks/exhaustive-deps -- hiddenKey stands for the array
-  [state, now, cfg.songNames, cfg.covers, hiddenKey, host.timeZone, host.locale]);
+  [state, now, cfg.songNames, cfg.covers, hiddenKey, host.timeZone, host.locale, outletPower]);
 
   // Ask the feed for the tags and covers of the songs on screen.
   const mediaKey = model ? wantedMedia(model).join('\n') : '';
@@ -73,6 +100,25 @@ export default function LightShow({ config, style }: PluginComponentProps) {
   const [openId, setOpenId] = React.useState<string | null>(null);
   const close = React.useCallback(() => setOpenId(null), []);
   const open = model?.controllers.find((v) => v.c.id === openId) ?? null;
+  React.useEffect(() => (openId ? power.watchClosely() : undefined), [power, openId]);
+
+  // The open controller's outlet, when it has one Home Assistant can see.
+  let openPower: PowerLink | null = null;
+  const openEntity = open ? links[open.c.id] : undefined;
+  const openReading = openEntity && powerState.ha === 'ok' ? powerState.outlets[openEntity] : null;
+  if (open && openEntity && openReading && state) {
+    // Every controller counts for "also powers", even ones this module hides.
+    const everyone = controllersFrom(state.systems ?? []);
+    // Only the show player shuts down first, and only while it can hear us.
+    const shutDown = open.c.isPlayer && !open.health.offline ? base : undefined;
+    openPower = {
+      entity: openEntity, reading: openReading, job: powerState.jobs[openEntity] ?? null,
+      shared: sharedWith(links, open.c.id, everyone),
+      turnOn: () => power.turnOn(openEntity),
+      turnOff: () => power.turnOff(openEntity, shutDown),
+      restart: () => power.restart(openEntity, shutDown),
+    };
+  }
 
   const props = model ? { m: model, env, o, onOpen: setOpenId } : null;
   let body: React.ReactNode = null;
@@ -107,7 +153,7 @@ export default function LightShow({ config, style }: PluginComponentProps) {
       </div>
       {open && model && (
         <div style={{ position: 'absolute', inset: 0, ['--d' as string]: d }}>
-          <Sheet v={open} m={model} env={env} landscape={o === 'landscape'} onClose={close} />
+          <Sheet v={open} m={model} env={env} landscape={o === 'landscape'} power={openPower} onClose={close} />
         </div>
       )}
     </div>

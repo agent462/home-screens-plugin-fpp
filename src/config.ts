@@ -1,6 +1,7 @@
 import type { Fetcher } from './data/feed';
 import type { SongNameSource } from './lib/songs';
 import type { ViewName } from './ui/views';
+import { readLinks, type Links } from './lib/power';
 
 export const PLUGIN_ID = 'fpp';
 
@@ -25,6 +26,15 @@ export function readConfig(raw: Record<string, unknown>): LightShowConfig {
 }
 
 export const sdk = () => (typeof window !== 'undefined' ? window.__HS_SDK__ : undefined);
+
+/** Plugin setting that holds the controller → outlet links. */
+export const OUTLETS_SETTING = 'outlets';
+
+/** Which outlet powers which controller, saved once for the plugin so every
+ *  Light Show module and wall agrees. */
+export function savedLinks(): Links {
+  return readLinks(sdk()?.getPluginSettings?.(PLUGIN_ID)?.[OUTLETS_SETTING]);
+}
 
 /** JSON through the hub proxy, which holds the request to the show network. */
 export const proxyFetch: Fetcher = async (url, cacheTtlMs) => {

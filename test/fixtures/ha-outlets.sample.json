@@ -1,0 +1,291 @@
+{
+ "_note": "Made up. The shape the outlet template is expected to return, not a reply recorded from a real Home Assistant.",
+ "rows": [
+  {
+   "id": "switch.show_player_plug",
+   "name": "Show player plug",
+   "state": "on",
+   "device": "dev_show_player_plug",
+   "deviceName": "Show player plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.show_player_plug_led",
+   "name": "Show player plug LED",
+   "state": "on",
+   "device": "dev_show_player_plug",
+   "deviceName": "Show player plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.show_player_plug_auto_off_enabled",
+   "name": "Show player plug Auto-off enabled",
+   "state": "off",
+   "device": "dev_show_player_plug",
+   "deviceName": "Show player plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.garage_plug",
+   "name": "Garage plug",
+   "state": "on",
+   "device": "dev_garage_plug",
+   "deviceName": "Garage plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.garage_plug_led",
+   "name": "Garage plug LED",
+   "state": "on",
+   "device": "dev_garage_plug",
+   "deviceName": "Garage plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.garage_plug_auto_off_enabled",
+   "name": "Garage plug Auto-off enabled",
+   "state": "off",
+   "device": "dev_garage_plug",
+   "deviceName": "Garage plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.flake_plug",
+   "name": "Flake plug",
+   "state": "on",
+   "device": "dev_flake_plug",
+   "deviceName": "Flake plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.flake_plug_led",
+   "name": "Flake plug LED",
+   "state": "on",
+   "device": "dev_flake_plug",
+   "deviceName": "Flake plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.flake_plug_auto_off_enabled",
+   "name": "Flake plug Auto-off enabled",
+   "state": "off",
+   "device": "dev_flake_plug",
+   "deviceName": "Flake plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_left_outlet",
+   "name": "House left outlet",
+   "state": "on",
+   "device": "dev_house_left_outlet",
+   "deviceName": "House left outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_left_outlet_led",
+   "name": "House left outlet LED",
+   "state": "on",
+   "device": "dev_house_left_outlet",
+   "deviceName": "House left outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_left_outlet_auto_off_enabled",
+   "name": "House left outlet Auto-off enabled",
+   "state": "off",
+   "device": "dev_house_left_outlet",
+   "deviceName": "House left outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_right_outlet",
+   "name": "House right outlet",
+   "state": "on",
+   "device": "dev_house_right_outlet",
+   "deviceName": "House right outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_right_outlet_led",
+   "name": "House right outlet LED",
+   "state": "on",
+   "device": "dev_house_right_outlet",
+   "deviceName": "House right outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.house_right_outlet_auto_off_enabled",
+   "name": "House right outlet Auto-off enabled",
+   "state": "off",
+   "device": "dev_house_right_outlet",
+   "deviceName": "House right outlet",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.quad_props_plug",
+   "name": "Quad Props plug",
+   "state": "on",
+   "device": "dev_quad_props_plug",
+   "deviceName": "Quad Props plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.quad_props_plug_led",
+   "name": "Quad Props plug LED",
+   "state": "on",
+   "device": "dev_quad_props_plug",
+   "deviceName": "Quad Props plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.quad_props_plug_auto_off_enabled",
+   "name": "Quad Props plug Auto-off enabled",
+   "state": "off",
+   "device": "dev_quad_props_plug",
+   "deviceName": "Quad Props plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.mega_plug",
+   "name": "Mega tree plug",
+   "state": "on",
+   "device": "dev_mega_plug",
+   "deviceName": "Mega tree plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.mega_plug_led",
+   "name": "Mega tree plug LED",
+   "state": "on",
+   "device": "dev_mega_plug",
+   "deviceName": "Mega tree plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.mega_plug_auto_off_enabled",
+   "name": "Mega tree plug Auto-off enabled",
+   "state": "off",
+   "device": "dev_mega_plug",
+   "deviceName": "Mega tree plug",
+   "via": null,
+   "viaName": null,
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.arches_strip_socket_1",
+   "name": "Arches supply",
+   "state": "on",
+   "device": "dev_arches_1",
+   "deviceName": "Arches supply",
+   "via": "dev_arches",
+   "viaName": "Arches strip",
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.arches_strip_socket_2",
+   "name": "Arches strip Socket 2",
+   "state": "off",
+   "device": "dev_arches_2",
+   "deviceName": "Arches strip Socket 2",
+   "via": "dev_arches",
+   "viaName": "Arches strip",
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.arches_strip_socket_3",
+   "name": "Arches strip Socket 3",
+   "state": "off",
+   "device": "dev_arches_3",
+   "deviceName": "Arches strip Socket 3",
+   "via": "dev_arches",
+   "viaName": "Arches strip",
+   "tapo": true,
+   "cls": null
+  },
+  {
+   "id": "switch.porch_shelly",
+   "name": "Porch Shelly",
+   "state": "on",
+   "device": "dev_shelly",
+   "deviceName": "Porch Shelly",
+   "via": null,
+   "viaName": null,
+   "tapo": false,
+   "cls": "outlet"
+  },
+  {
+   "id": "switch.adguard_protection",
+   "name": "AdGuard Protection",
+   "state": "on",
+   "device": null,
+   "deviceName": null,
+   "via": null,
+   "viaName": null,
+   "tapo": false,
+   "cls": null
+  }
+ ]
+}
